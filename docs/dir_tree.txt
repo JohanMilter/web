@@ -1,0 +1,43 @@
+─│┌┐└├
+
+
+┌── docs ──┐
+│          └── folders.txt
+│
+├── src ──┐
+│         ├── assets 
+│         │
+│         ├── components ──┐
+│         │                ├── macros ──┐
+│         │                │            ├── group.rs
+│         │                │            ├── import.rs
+│         │                │            └── mod.rs
+│         │                │
+│         │                ├── structs ──┐
+│         │                │             ├── data_structs.rs
+│         │                │             └── mod.rs
+│         │                │
+│         │                └── mod.rs
+│         │
+│         ├── logic ──┐
+│         │           ├── dir.rs
+│         │           ├── excel.rs
+│         │           ├── mod.rs
+│         │           ├── txt.rs
+│         │           ├── word.rs
+│         │           ├── xml.rs
+│         │           └── zip.rs
+│         │
+│         ├── lig.rs 
+│         └── rules.txt 
+│
+│
+├── test 
+│
+├── .gitignore 
+│
+├── Cargo.lock
+│
+├── Cargo.toml
+│
+└── rustfmt.toml
