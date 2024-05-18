@@ -1,1 +1,1 @@
-mod web;
+crate::import!(web > pub [*]);
