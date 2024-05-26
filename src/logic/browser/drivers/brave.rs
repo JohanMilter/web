@@ -1,24 +1,42 @@
-use crate::browser::{By, Driver, GetElement, Actions, Point, WebElement};
+use crate::browser::{BraveTab, GetTabs, GetDriver, WebDriver};
 
-macros::impl_type!(pub struct Brave {
-} => Driver {
-    async fn open() -> Self {
-        todo!()
-    }
-} => Actions {
-    fn click_at(&self, element: &Box<dyn WebElement>) -> bool {
-        todo!()
-    }
-    fn type_at(&self, element: &Box<dyn WebElement>, text: &str) -> bool{
-        todo!()
-    }
-    fn set_cursor_at(&self, point: &Point) -> bool {
-        todo!()
-    }
-} => GetElement {
-    fn get_element(&self, by: By) -> Box<dyn WebElement> {
-        todo!()
-    }
-} => {
 
-});
+pub struct BraveDriver {
+}
+
+impl WebDriver for BraveDriver {
+    fn kill(self) {
+        drop(self)
+    }
+}
+impl Drop for BraveDriver {
+    fn drop(&mut self) {
+        println!("Dropped BraveDriver");
+    }
+} 
+
+
+impl GetDriver<BraveDriver> for BraveDriver {
+    async fn open() -> Option<BraveDriver> {
+        todo!()
+    }
+} 
+
+impl GetTabs<BraveTab> for BraveDriver{
+    fn delete_tab(&mut self, name: &str) -> Option<BraveTab> {
+        todo!()
+    }
+    fn pop_tab(&mut self) -> Option<BraveTab> {
+        todo!()
+    }
+    fn goto_tab(&self, name: &str) -> Option<BraveTab> {
+        todo!()
+    }
+    fn new_tab(&mut self, name: &str) -> BraveTab {
+        todo!()
+    }
+}
+
+impl BraveDriver{
+
+}

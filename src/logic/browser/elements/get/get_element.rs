@@ -1,10 +1,5 @@
 use crate::browser::WebElement;
 
-pub trait Driver
-{
-    async fn open() -> Self;
-}
-
 pub enum By<'a>
 {
     Id(&'a str),
@@ -13,7 +8,7 @@ pub enum By<'a>
     Name(&'a str),
 }
 
-pub trait GetElement
+pub trait GetElement<T>
 {
-    fn get_element(&self, by: By) -> Box<dyn WebElement>;
+    fn get_element(&mut self, by: By) -> Option<T>;
 }

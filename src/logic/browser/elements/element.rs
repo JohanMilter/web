@@ -1,6 +1,6 @@
 
 
 
-pub trait WebElement {
-    
+pub trait WebElement: Drop {
+    fn kill(self);
 } 

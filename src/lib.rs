@@ -4,26 +4,29 @@ macros::import!(logic > pub [*]);
 #[cfg(test)]
 mod tests
 {
-    use std::net::TcpListener;
 
+    use super::browser::{
+        Actions, By, ClickType, GetDriver, GetElement, GetTabs, PageNavigation, Tab, WebDriver,
+    };
     use super::*;
 
-    #[test]
-    fn test()
+    #[tokio::test]
+    async fn test()
     {
-        let listener = TcpListener::bind("127.0.0.1:8080").expect("Failed to bind to address!");
-        println!("Server listening on 127.0.0.1:8080");
+        //Load the browser
+        let mut browser = browser::BraveDriver::open().await.unwrap();
 
-        for stream in listener.incoming(){
-            match stream {
-                Ok(stream) => {
-                    std::thread::spawn(|| server::client::handle(stream));
-                }
-                Err(e) => {
-                    println!("Failed to establish connection: {e}");
-                }
-            }
-        }
+        //Get the tab
+        let mut tab = browser.new_tab("searching hello");
+
+        //Get the page
+        let mut page = tab.navigate("https://www.google.com/").unwrap();
+
+        //Get the element
+        let element = page.get_element(By::Id("")).unwrap();
+
+        //Click the element
+        element.click(ClickType::Left);
     }
 
     #[test]
