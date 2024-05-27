@@ -6,7 +6,7 @@ mod tests
 {
 
     use super::browser::{
-        Actions, By, ClickType, GetDriver, GetElement, GetTabs, PageNavigation, Tab, WebDriver,
+        Actions, By, ClickType, GetDriver, GetElement, GetTabs, PageNavigation, Page, Tab, WebDriver,
     };
     use super::*;
 
@@ -27,6 +27,8 @@ mod tests
 
         //Click the element
         element.click(ClickType::Left);
+        
+        
     }
 
     #[test]

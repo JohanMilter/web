@@ -28,9 +28,6 @@ impl GetTabs<ChromeTab> for ChromeDriver{
     fn pop_tab(&mut self) -> Option<ChromeTab> {
         todo!()
     }
-    fn goto_tab(&self, name: &str) -> Option<ChromeTab> {
-        todo!()
-    }
     fn new_tab(&mut self, name: &str) -> ChromeTab {
         todo!()
     }

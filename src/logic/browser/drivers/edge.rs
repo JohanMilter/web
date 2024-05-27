@@ -28,9 +28,6 @@ impl GetTabs<EdgeTab> for EdgeDriver{
     fn pop_tab(&mut self) -> Option<EdgeTab> {
         todo!()
     }
-    fn goto_tab(&self, name: &str) -> Option<EdgeTab> {
-        todo!()
-    }
     fn new_tab(&mut self, name: &str) -> EdgeTab {
         todo!()
     }

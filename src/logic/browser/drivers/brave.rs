@@ -29,9 +29,6 @@ impl GetTabs<BraveTab> for BraveDriver{
     fn pop_tab(&mut self) -> Option<BraveTab> {
         todo!()
     }
-    fn goto_tab(&self, name: &str) -> Option<BraveTab> {
-        todo!()
-    }
     fn new_tab(&mut self, name: &str) -> BraveTab {
         todo!()
     }
