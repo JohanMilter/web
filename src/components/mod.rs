@@ -1,1 +1,2 @@
-pub mod structs;
+mod command;
+pub use command::Command;

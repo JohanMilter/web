@@ -1,1 +1,0 @@
-macros::import!(get_tabs > pub [*]);
