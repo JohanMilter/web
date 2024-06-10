@@ -4,10 +4,9 @@ macros::import!(logic > pub [*]);
 #[cfg(test)]
 mod tests
 {
-
-
     use super::*;
 
+    #[test]
     fn test()
     {
         let browser = browser::ChromeDriver::open(browser::Settings {});
