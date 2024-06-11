@@ -2,20 +2,17 @@ use std::path::Path;
 
 use protocol::command::http;
 
-use crate::{
-    browser::{ChromeTab, Settings},
-    Command,
-};
+use crate::browser::{EdgeTab, Settings};
 
-#[derive(Clone, PartialEq, Default)]
-pub struct ChromeDriver
+#[derive(Clone, PartialEq)]
+pub struct EdgeDriver<'a>
 {
-    settings: Settings,
+    settings: &'a Settings,
 }
 //Init
-impl ChromeDriver
+impl<'a> EdgeDriver<'a>
 {
-    pub fn open(settings: Settings) -> Self
+    pub fn open(settings: &'a Settings) -> Self
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -28,7 +25,7 @@ impl ChromeDriver
     }
 }
 //Commands
-impl ChromeDriver
+impl<'a> EdgeDriver<'a>
 {
     pub(crate) fn send_command(&self, command: http::Builder)
     {
@@ -36,10 +33,10 @@ impl ChromeDriver
     }
 }
 //Tabs
-impl ChromeDriver
+impl<'a> EdgeDriver<'a>
 {
-    pub fn new_tab(&self) -> ChromeTab
+    pub fn new_tab(&self) -> EdgeTab
     {
-        ChromeTab {}
+        EdgeTab {driver_ref: self}
     }
 }
