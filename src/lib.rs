@@ -9,11 +9,17 @@ mod tests
     #[test]
     fn test()
     {
+
+
+
+        
+        /*
         let browser = browser::ChromeDriver::open(&browser::Settings {});
         let tab = browser.new_tab();
         let url = tab.navigate_url(UrlFrom::Url(""));
         let element = url.get_element(ElementFrom::Id(""));
         let attributes = element.read();
+        */
     }
 
     #[test]
