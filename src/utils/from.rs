@@ -2,7 +2,7 @@
 
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum ElementFrom<'a>
+pub enum From<'a>
 {
     Id(&'a str),
     XPath(&'a str),

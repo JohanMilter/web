@@ -1,28 +1,25 @@
-macros::import!(components > pub [*]);
-macros::import!(logic > pub [*]);
+mod utils;
+pub use utils::*;
+mod logic;
+pub use logic::*;
 
 #[cfg(test)]
 mod tests
 {
+    use browser::{actions::click::ClickType, browsers::{brave::Brave, chrome::Chrome, edge::Edge}, default::{driver::{Driver, DriverFns}, element::ElementFns, tab::TabFns}};
+
     use super::*;
 
     #[test]
     fn test()
     {
-
-
-
+        let driver = Driver::<Chrome>::open();
+        let tab = driver.new_tab();
+        let element = tab.get_element(From::Id(""));
+        element.click(ClickType::Left);
         
-        /*
-        let browser = browser::ChromeDriver::open(&browser::Settings {});
-        let tab = browser.new_tab();
-        let url = tab.navigate_url(UrlFrom::Url(""));
-        let element = url.get_element(ElementFrom::Id(""));
-        let attributes = element.read();
-        */
     }
 
     #[test]
     fn generate_dir_tree() {}
 }
-
