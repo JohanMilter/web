@@ -3,7 +3,7 @@ use std::path::Path;
 use protocol::command::http;
 
 use crate::browser::{
-    actions::click::ClickType,
+    action_parameters::click::ClickType,
     default::{
         driver::DriverFns,
         element::{Element, ElementFns},

@@ -1,4 +1,4 @@
-use crate::browser::actions::click::ClickType;
+use crate::browser::action_parameters::click::ClickType;
 
 use super::tab::Tab;
 

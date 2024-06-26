@@ -1,0 +1,54 @@
+── web ─┐
+        ├─ .gitattributes
+        ├─ .gitignore
+        ├─ Cargo.lock
+        ├─ Cargo.toml
+        ├─ LICENSE
+        ├─ rustfmt.toml
+        ├─ docs ─┐
+        │        └─ tree.txt
+        ├─ src ─┐
+        │       ├─ lib.rs
+        │       ├─ main.rs
+        │       ├─ rules.txt
+        │       ├─ assets ──
+        │       ├─ utils ─┐
+        │       │         ├─ from.rs
+        │       │         ├─ mod.rs
+        │       │         └─ url.rs
+        │       └─ logic ─┐
+        │                 ├─ mod.rs
+        │                 ├─ browser ─┐
+        │                 │           ├─ mod.rs
+        │                 │           ├─ actions ─┐
+        │                 │           │           ├─ mod.rs
+        │                 │           │           └─ click.rs
+        │                 │           ├─ browsers ─┐
+        │                 │           │            ├─ mod.rs
+        │                 │           │            ├─ chrome ─┐
+        │                 │           │            │          ├─ driver.rs
+        │                 │           │            │          ├─ element.rs
+        │                 │           │            │          ├─ mod.rs
+        │                 │           │            │          └─ tab.rs
+        │                 │           │            ├─ edge ─┐
+        │                 │           │            │        ├─ driver.rs
+        │                 │           │            │        ├─ element.rs
+        │                 │           │            │        ├─ mod.rs
+        │                 │           │            │        └─ tab.rs
+        │                 │           │            └─ brave ─┐
+        │                 │           │                      ├─ driver.rs
+        │                 │           │                      ├─ element.rs
+        │                 │           │                      ├─ mod.rs
+        │                 │           │                      └─ tab.rs
+        │                 │           └─ default ─┐
+        │                 │                       ├─ mod.rs
+        │                 │                       ├─ tab.rs
+        │                 │                       ├─ driver.rs
+        │                 │                       └─ element.rs
+        │                 ├─ crawler ─┐
+        │                 │           └─ mod.rs
+        │                 ├─ scraper ─┐
+        │                 │           └─ mod.rs
+        │                 └─ server ─┐
+        │                            └─ mod.rs
+        └─ test ──

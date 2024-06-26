@@ -2,7 +2,7 @@ use std::path::Path;
 
 use protocol::command::http;
 
-use crate::browser::{actions::click::ClickType, default::{driver::DriverFns, element::{Element, ElementFns}}};
+use crate::browser::{action_parameters::click::ClickType, default::{driver::DriverFns, element::{Element, ElementFns}}};
 
 use super::Brave;
 

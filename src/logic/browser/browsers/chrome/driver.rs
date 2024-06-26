@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use protocol::command::http;
-
 use crate::browser::default::{driver::Driver, driver::DriverFns, tab::Tab};
 
 use super::Chrome;
