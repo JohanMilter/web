@@ -6,23 +6,23 @@
         ├─ LICENSE
         ├─ rustfmt.toml
         ├─ docs ─┐
-        │        └─ tree.txt
+        │        ├─ tree.txt
+        │        └─ explain ─┐
+        │                    └─ driver.md
         ├─ src ─┐
         │       ├─ lib.rs
-        │       ├─ main.rs
         │       ├─ rules.txt
+        │       ├─ main.rs
         │       ├─ assets ──
         │       ├─ utils ─┐
         │       │         ├─ from.rs
         │       │         ├─ mod.rs
-        │       │         └─ url.rs
+        │       │         ├─ url.rs
+        │       │         └─ error.rs
         │       └─ logic ─┐
         │                 ├─ mod.rs
         │                 ├─ browser ─┐
         │                 │           ├─ mod.rs
-        │                 │           ├─ actions ─┐
-        │                 │           │           ├─ mod.rs
-        │                 │           │           └─ click.rs
         │                 │           ├─ browsers ─┐
         │                 │           │            ├─ mod.rs
         │                 │           │            ├─ chrome ─┐
@@ -40,11 +40,14 @@
         │                 │           │                      ├─ element.rs
         │                 │           │                      ├─ mod.rs
         │                 │           │                      └─ tab.rs
-        │                 │           └─ default ─┐
-        │                 │                       ├─ mod.rs
-        │                 │                       ├─ tab.rs
-        │                 │                       ├─ driver.rs
-        │                 │                       └─ element.rs
+        │                 │           ├─ default ─┐
+        │                 │           │           ├─ mod.rs
+        │                 │           │           ├─ tab.rs
+        │                 │           │           ├─ driver.rs
+        │                 │           │           └─ element.rs
+        │                 │           └─ action_parameters ─┐
+        │                 │                                 ├─ mod.rs
+        │                 │                                 └─ click.rs
         │                 ├─ crawler ─┐
         │                 │           └─ mod.rs
         │                 ├─ scraper ─┐

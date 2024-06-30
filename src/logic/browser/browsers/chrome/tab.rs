@@ -2,26 +2,47 @@ use std::path::Path;
 
 use protocol::command::http;
 
-use crate::{browser::default::{driver::DriverFns, element::Element, tab::{Tab, TabFns}}, From, Url};
+use crate::{
+    browser::default::{
+        driver::DriverFns,
+        element::Element,
+        tab::{Tab, TabFns},
+    },
+    Error, From, Url,
+};
 
 use super::Chrome;
 
-impl<'a> TabFns<'a, Chrome> for Tab<'a, Chrome> {
-    fn get_element(&self, from: From) -> Element<Chrome> {
+impl<'a> TabFns<'a, Chrome> for Tab<'a, Chrome>
+{
+    fn get_element(&self, from: From) -> crate::Result<Element<Chrome>>
+    {
         let mut command = http::Builder::default();
-        command.push(http::Element::GET { value: Path::new(""), version: 1.1 });
+        command.push(http::Element::GET {
+            value: Path::new(""),
+            version: 1.1,
+        });
 
-        self.parent.send_command(command);
+        let _ = self
+            .parent
+            .ok_or_else(|| Error::InvalidRefference("Invalid '' refference".into()))?
+            .send_command(command);
 
-        Element::<Chrome> {
-            parent: self,
-            state: std::marker::PhantomData::<Chrome>
-        }
+        Ok(Element::<Chrome>::builder()
+            .parent(Some(self))
+            .state(std::marker::PhantomData::<Chrome>)
+            .build())
     }
-    fn navigate(&self, url: Url) {
+    fn navigate(&self, url: Url) -> crate::Result<()>
+    {
         let mut command = http::Builder::default();
-        command.push(http::Element::GET { value: Path::new(""), version: 1.1 });
+        command.push(http::Element::GET {
+            value: Path::new(""),
+            version: 1.1,
+        });
 
-        self.parent.send_command(command);
+        self.parent
+            .ok_or_else(|| Error::InvalidRefference("Invalid '' refference".into()))?
+            .send_command(command)
     }
 }
