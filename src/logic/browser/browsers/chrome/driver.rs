@@ -1,6 +1,9 @@
 use std::{path::Path, process::Command};
 
-use crate::browser::default::{driver::Driver, driver::DriverFns, tab::Tab};
+use crate::browser::default::{
+    driver::{CommandResult, Driver, DriverFns},
+    tab::Tab,
+};
 use protocol::command::http;
 
 use super::Chrome;
@@ -46,8 +49,8 @@ impl<'a> DriverFns<'a, Chrome> for Driver<Chrome>
         let _ = driver.send_command(command);
         Ok(driver)
     }
-    fn send_command(&'a self, command: http::Builder) -> crate::Result<()>
+    fn send_command(&'a self, command: http::Builder) -> crate::Result<CommandResult>
     {
-        Ok(())
+        Ok(CommandResult::Void)
     }
 }

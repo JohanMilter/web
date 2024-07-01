@@ -5,13 +5,18 @@ use crate::Result;
 
 use super::tab::Tab;
 
+pub enum CommandResult{
+    String(String),
+    Number(isize),
+    Void,
+}
 pub trait DriverFns<'a, State>
 {
     //Init
     fn open() -> Result<Driver<State>>;
 
     //Commands
-    fn send_command(&'a self, command: http::Builder) -> Result<()>;
+    fn send_command(&'a self, command: http::Builder) -> Result<CommandResult>;
 
     //Tabs
     fn new_tab(&'a self) -> Result<Tab<'a, State>>;

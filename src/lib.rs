@@ -8,14 +8,14 @@ mod tests
 {
     use std::{path::Path, thread, time::Duration};
 
-    use browser::{browsers::{brave::Brave, chrome::Chrome, edge::Edge}, default::{driver::{Driver, DriverFns}, element::ElementFns, tab::TabFns}};
+    use browser::{browsers::{brave::Brave, chrome::Chrome, edge::Edge}, default::{driver::{Driver, DriverFns}, tab::TabFns}};
 
     use super::*;
 
     #[test]
     fn test() -> Result<()>
     {
-        let driver = Driver::<Brave>::open()?;
+        let driver = Driver::<Chrome>::open()?;
         thread::sleep(Duration::from_secs(10));
         Ok(())
     }

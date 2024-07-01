@@ -4,7 +4,7 @@ use protocol::command::http;
 
 use crate::{
     browser::default::{
-        driver::DriverFns,
+        driver::{CommandResult, DriverFns},
         element::Element,
         tab::{Tab, TabFns},
     },
@@ -33,7 +33,7 @@ impl<'a> TabFns<'a, Edge> for Tab<'a, Edge>
             .state(std::marker::PhantomData::<Edge>)
             .build())
     }
-    fn navigate(&self, url: Url) -> crate::Result<()>
+    fn navigate(&self, url: Url) -> crate::Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {

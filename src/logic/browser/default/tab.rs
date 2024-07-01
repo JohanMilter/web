@@ -2,11 +2,11 @@ use macros::PubCrate_Builder;
 
 use crate::{From, Result, Url};
 
-use super::{driver::Driver, element::Element};
+use super::{driver::{CommandResult, Driver}, element::Element};
 
 pub trait TabFns<'a, State> {
     //Navigation
-    fn navigate(&self, url: Url) -> Result<()>;
+    fn navigate(&self, url: Url) -> Result<CommandResult>;
 
     //Elements
     fn get_element(&self, from: From) -> Result<Element<State>>;

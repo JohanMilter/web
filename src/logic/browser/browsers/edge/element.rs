@@ -6,8 +6,8 @@ use crate::{
     browser::{
         action_parameters::click::ClickType,
         default::{
-            driver::DriverFns,
-            element::{Element, ElementFns},
+            driver::{CommandResult, DriverFns},
+            element::{Element, ReadActions, WriteActions},
         },
     },
     Error,
@@ -15,9 +15,9 @@ use crate::{
 
 use super::Edge;
 
-impl<'a> ElementFns<'a, Edge> for Element<'a, Edge>
+impl<'a> WriteActions<'a, Edge> for Element<'a, Edge>
 {
-    fn click(&self, click_type: ClickType) -> crate::Result<()>
+    fn click(&self, click_type: ClickType) -> crate::Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -29,9 +29,8 @@ impl<'a> ElementFns<'a, Edge> for Element<'a, Edge>
             .and_then(|parent| parent.parent)
             .ok_or_else(|| Error::InvalidRefference("Invalid 'Driver<Brave>' refference".into()))?
             .send_command(command)
-            .map_err(|_| Error::InvalidRefference("Invalid 'Tab<'a, Brave>' refference".into()))
     }
-    fn send_text(&self, text: &str) -> crate::Result<()>
+    fn send_text(&self, text: &str) -> crate::Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -43,6 +42,22 @@ impl<'a> ElementFns<'a, Edge> for Element<'a, Edge>
             .and_then(|parent| parent.parent)
             .ok_or_else(|| Error::InvalidRefference("Invalid 'Driver<Brave>' refference".into()))?
             .send_command(command)
-            .map_err(|_| Error::InvalidRefference("Invalid 'Tab<'a, Brave>' refference".into()))
+    }
+}
+
+impl<'a> ReadActions<'a, Edge> for Element<'a, Edge>
+{
+    fn read(&self, attribute_key: &str) -> crate::Result<CommandResult>
+    {
+        let mut command = http::Builder::default();
+        command.push(http::Element::GET {
+            value: Path::new(""),
+            version: 1.1,
+        });
+
+        self.parent
+            .and_then(|parent| parent.parent)
+            .ok_or_else(|| Error::InvalidRefference("Invalid 'Driver<Brave>' refference".into()))?
+            .send_command(command)
     }
 }
