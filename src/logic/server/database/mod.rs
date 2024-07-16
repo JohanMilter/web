@@ -1,15 +1,16 @@
-use memory::{non_volatile::NonVolatileDB, volatile::VolatileDB};
+use memory::{non_volatile::NonVolatile, volatile::Volatile};
 
+pub mod behavior;
 pub mod memory;
 
 #[derive(Clone, Debug)]
-pub enum DatabaseValueType
+pub enum DBValueType
 {
     String(String),
     Int(i32),
     Float(f32),
 }
-impl Default for DatabaseValueType
+impl Default for DBValueType
 {
     fn default() -> Self
     {
@@ -17,9 +18,3 @@ impl Default for DatabaseValueType
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Database
-{
-    Volatile(VolatileDB),
-    NonVolatile(NonVolatileDB),
-}

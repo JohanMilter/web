@@ -1,103 +1,93 @@
-use std::ops::{Index, IndexMut};
+use std::{fmt, ops::{Index, IndexMut}};
 
 #[derive(Debug, Clone, Default)]
 pub struct Tensor<T>
 {
     pub(crate) data: Vec<T>,
-    pub(crate) dimensions: Vec<usize>,
+    pub(crate) shape: Vec<usize>,
 }
-
+impl<T: fmt::Display> fmt::Display for Tensor<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Tensor {{")?;
+        writeln!(f, "    data: [")?;
+        for item in &self.data {
+            writeln!(f, "        {},", item)?;
+        }
+        writeln!(f, "    ],")?;
+        writeln!(f, "    shape: [")?;
+        for dim in &self.shape {
+            writeln!(f, "        {},", dim)?;
+        }
+        writeln!(f, "    ],")?;
+        writeln!(f, "}}")
+    }
+}
 impl<T: Default + Clone> Tensor<T>
 {
-    pub fn new(dimensions: Vec<usize>) -> Self
+    pub fn new(shape: Vec<usize>) -> Self
     {
-        let size = dimensions.iter().product();
+        let size = shape.iter().product();
         Self {
             data: vec![T::default(); size],
-            dimensions,
+            shape,
         }
     }
 
-    pub fn from_vec(data: Vec<T>, dimensions: Vec<usize>) -> Self
+    pub fn from_vec(data: Vec<T>, shape: Vec<usize>) -> Self
     {
-        assert_eq!(data.len(), dimensions.iter().product::<usize>());
-        Self { data, dimensions }
+        assert_eq!(data.len(), shape.iter().product::<usize>());
+        Self { data, shape }
     }
 
-    pub fn dimensions(&self) -> &[usize]
+    pub fn shape(&self) -> &[usize]
     {
-        &self.dimensions
+        &self.shape
     }
 
     pub fn index_to_flat_index(&self, indices: &[usize]) -> usize
     {
-        assert_eq!(indices.len(), self.dimensions.len());
+        assert_eq!(indices.len(), self.shape.len());
         indices
             .iter()
-            .zip(&self.dimensions)
+            .zip(&self.shape)
             .fold(0, |acc, (&idx, &dim)| {
                 assert!(idx < dim);
                 acc * dim + idx
             })
     }
 
-    pub fn add_dimension(&mut self, dimension_size: usize)
-    {
-        self.dimensions.push(dimension_size);
-    }
-
-    pub fn add_value(&mut self, indices: &[usize], value: T){
-        assert!(self.dimensions.len() - 1 == indices.len(), "The number of indeces must be 'dimensions.len() - 1'");
-        let vec = self.data.index_mut(indices);
-        
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
-
-impl<T: Default + Clone> Index<&[usize]> for Tensor<T>
-{
-    type Output = T;
-
-    fn index(&self, indices: &[usize]) -> &Self::Output
-    {
+    pub fn insert_value(&mut self, indices: &[usize], value: T){
+        assert_eq!(indices.len(), self.shape.len());
         let flat_index = self.index_to_flat_index(indices);
-        &self.data[flat_index]
+        self.data.insert(flat_index, value);
     }
-}
 
-impl<T: Default + Clone> IndexMut<&[usize]> for Tensor<T>
-{
-    fn index_mut(&mut self, indices: &[usize]) -> &mut Self::Output
-    {
-        let flat_index = self.index_to_flat_index(indices);
-        &mut self.data[flat_index]
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

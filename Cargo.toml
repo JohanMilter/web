@@ -6,11 +6,10 @@ edition = "2021"
 [dependencies]
 chart = { path = "../chart" }
 macros = { path = "../macros" }
-macros_derive = { path = "../macros/macros_derive" }
-derive_builder = "*"
 protocol = { path = "../protocol" }
-reqwest = { version = "0.12.4", features = ["json", "blocking"] }
-serde = { version =  "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
-tokio = { version = "1.37.0", features = ["full"] }
-headless_chrome = "1.0.10"
+# macros_derive = { path = "../macros/macros_derive" }
+# reqwest = { version = "0.12.4", features = ["json", "blocking"] }
+# serde = { version =  "1.0.203", features = ["derive"] }
+# serde_json = "1.0.117"
+# tokio = { version = "1.37.0", features = ["full"] }
+# headless_chrome = "1.0.10"
