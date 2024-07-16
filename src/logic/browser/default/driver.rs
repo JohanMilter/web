@@ -1,7 +1,9 @@
-use macros::PubCrate_Builder;
+
+use macros::Builder;
 use protocol::command::http;
 
-use crate::Result;
+
+use crate::types::result::Result;
 
 use super::tab::Tab;
 
@@ -23,7 +25,7 @@ pub trait DriverFns<'a, State>
 }
 
 //The Driver is the Client that should send and receive http commands
-#[derive(PubCrate_Builder, Default, Debug)]
+#[derive(Default, Debug)]
 pub struct Driver<State>
 {
     pub(crate) state: std::marker::PhantomData<State>,

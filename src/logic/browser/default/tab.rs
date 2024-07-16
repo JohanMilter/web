@@ -1,21 +1,22 @@
-use macros::PubCrate_Builder;
+use crate::{types::from::From, types::result::Result, types::url::Url};
 
-use crate::{From, Result, Url};
+use super::{
+    driver::{CommandResult, Driver},
+    element::Element,
+};
 
-use super::{driver::{CommandResult, Driver}, element::Element};
-
-pub trait TabFns<'a, State> {
+pub trait TabFns<'a, State>
+{
     //Navigation
     fn navigate(&self, url: Url) -> Result<CommandResult>;
 
     //Elements
     fn get_element(&self, from: From) -> Result<Element<State>>;
 }
-#[derive(PubCrate_Builder, Default, Debug)]
-pub struct Tab<'a, State>{
+#[derive(Default, Debug)]
+pub struct Tab<'a, State>
+{
     pub(crate) parent: Option<&'a Driver<State>>,
-    pub(crate) state: std::marker::PhantomData<State>
+    pub(crate) state: std::marker::PhantomData<State>,
 }
-impl<'a, State> Tab<'a, State> {
-    
-}
+impl<'a, State> Tab<'a, State> {}

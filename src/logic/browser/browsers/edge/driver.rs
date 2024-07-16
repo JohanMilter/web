@@ -2,13 +2,19 @@ use std::{path::Path, process::Command};
 
 use protocol::command::http;
 
-use crate::browser::default::{driver::{CommandResult, Driver, DriverFns}, tab::Tab};
+use crate::{
+    browser::default::{
+        driver::{CommandResult, Driver, DriverFns},
+        tab::Tab,
+    },
+    types::result::Result,
+};
 
 use super::Edge;
 
 impl<'a> DriverFns<'a, Edge> for Driver<Edge>
 {
-    fn new_tab(&'a self) -> crate::Result<Tab<'a, Edge>>
+    fn new_tab(&'a self) -> Result<Tab<'a, Edge>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -18,12 +24,12 @@ impl<'a> DriverFns<'a, Edge> for Driver<Edge>
 
         let _ = self.send_command(command);
 
-        Ok(Tab::<'a, Edge>::builder()
-            .parent(Some(self))
-            .state(std::marker::PhantomData::<Edge>)
-            .build())
+        Ok(Tab::<'a, Edge> {
+            parent: Some(self),
+            state: std::marker::PhantomData::<Edge>,
+        })
     }
-    fn open() -> crate::Result<Driver<Edge>>
+    fn open() -> Result<Driver<Edge>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -36,15 +42,15 @@ impl<'a> DriverFns<'a, Edge> for Driver<Edge>
             .spawn()
             .expect("Failed to start Edge");
 
-        let driver = Self::builder()
-            .state(std::marker::PhantomData::<Edge>)
-            .child(Some(child))
-            .build();
+        let driver = Self {
+            state: std::marker::PhantomData::<Edge>,
+            child: Some(child),
+        };
 
         let _ = driver.send_command(command);
         Ok(driver)
     }
-    fn send_command(&'a self, command: http::Builder) -> crate::Result<CommandResult>
+    fn send_command(&'a self, command: http::Builder) -> Result<CommandResult>
     {
         Ok(CommandResult::Void)
     }

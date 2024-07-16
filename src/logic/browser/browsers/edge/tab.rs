@@ -7,15 +7,14 @@ use crate::{
         driver::{CommandResult, DriverFns},
         element::Element,
         tab::{Tab, TabFns},
-    },
-    Error, From, Url,
+    }, types::error::Error, types::from::From, types::result::Result, types::url::Url
 };
 
 use super::Edge;
 
 impl<'a> TabFns<'a, Edge> for Tab<'a, Edge>
 {
-    fn get_element(&self, from: From) -> crate::Result<Element<Edge>>
+    fn get_element(&self, from: From) -> Result<Element<Edge>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -28,12 +27,12 @@ impl<'a> TabFns<'a, Edge> for Tab<'a, Edge>
             .ok_or_else(|| Error::InvalidRefference("Invalid '' refference".into()))?
             .send_command(command);
 
-        Ok(Element::<Edge>::builder()
-            .parent(Some(self))
-            .state(std::marker::PhantomData::<Edge>)
-            .build())
+        Ok(Element::<Edge>{
+            parent: Some(self),
+            state: std::marker::PhantomData::<Edge>,
+        })
     }
-    fn navigate(&self, url: Url) -> crate::Result<CommandResult>
+    fn navigate(&self, url: Url) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {

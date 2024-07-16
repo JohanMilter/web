@@ -6,17 +6,19 @@ pub use logic::*;
 #[cfg(test)]
 mod tests
 {
-    use std::{path::Path, thread, time::Duration};
+    use std::path::Path;
 
-    use browser::{browsers::{brave::Brave, chrome::Chrome, edge::Edge}, default::{driver::{Driver, DriverFns}, tab::TabFns}};
+    use server::{private::Private, Server};
+    use types::result::Result;
 
     use super::*;
 
     #[test]
     fn test() -> Result<()>
     {
-        let driver = Driver::<Chrome>::open()?;
-        thread::sleep(Duration::from_secs(10));
+        let mut server: Server<Private> = Server::default();
+        let db = server.create_database("SomeDatabase", true);
+        
         Ok(())
     }
 

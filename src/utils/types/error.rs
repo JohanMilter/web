@@ -6,4 +6,3 @@ pub enum Error
     InvalidRefference(String),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;

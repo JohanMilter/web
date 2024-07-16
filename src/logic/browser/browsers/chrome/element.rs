@@ -9,15 +9,14 @@ use crate::{
             driver::{CommandResult, DriverFns},
             element::{Element, ReadActions, WriteActions},
         },
-    },
-    Error,
+    }, types::error::Error, types::result::Result
 };
 
 use super::Chrome;
 
 impl<'a> WriteActions<'a, Chrome> for Element<'a, Chrome>
 {
-    fn click(&self, click_type: ClickType) -> crate::Result<CommandResult>
+    fn click(&self, click_type: ClickType) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -32,7 +31,7 @@ impl<'a> WriteActions<'a, Chrome> for Element<'a, Chrome>
             .map_err(|_| Error::InvalidRefference("Invalid 'Tab<'a, Brave>' refference".into()))
     }
 
-    fn send_text(&self, text: &str) -> crate::Result<CommandResult>
+    fn send_text(&self, text: &str) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -48,7 +47,7 @@ impl<'a> WriteActions<'a, Chrome> for Element<'a, Chrome>
 }
 impl<'a> ReadActions<'a, Chrome> for Element<'a, Chrome>
 {
-    fn read(&self, attribute_key: &str) -> crate::Result<CommandResult>
+    fn read(&self, attribute_key: &str) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {

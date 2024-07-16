@@ -1,6 +1,4 @@
-use macros::PubCrate_Builder;
-
-use crate::{browser::action_parameters::click::ClickType, Result};
+use crate::{browser::action_parameters::click::ClickType, types::result::Result};
 
 use super::{driver::CommandResult, tab::Tab};
 
@@ -15,7 +13,7 @@ pub trait ReadActions<'a, State>
     //Actions
     fn read(&self, attribute_key: &str) -> Result<CommandResult>;
 }
-#[derive(PubCrate_Builder, Default, Debug)]
+#[derive(Default, Debug)]
 pub struct Element<'a, State>
 {
     pub(crate) parent: Option<&'a Tab<'a, State>>,

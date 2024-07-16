@@ -7,15 +7,14 @@ use crate::{
         driver::{CommandResult, DriverFns},
         element::Element,
         tab::{Tab, TabFns},
-    },
-    Error, From, Url,
+    }, types::error::Error, types::from::From, types::result::Result, types::url::Url
 };
 
 use super::Chrome;
 
 impl<'a> TabFns<'a, Chrome> for Tab<'a, Chrome>
 {
-    fn get_element(&self, from: From) -> crate::Result<Element<Chrome>>
+    fn get_element(&self, from: From) -> Result<Element<Chrome>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -28,12 +27,12 @@ impl<'a> TabFns<'a, Chrome> for Tab<'a, Chrome>
             .ok_or_else(|| Error::InvalidRefference("Invalid '' refference".into()))?
             .send_command(command);
 
-        Ok(Element::<Chrome>::builder()
-            .parent(Some(self))
-            .state(std::marker::PhantomData::<Chrome>)
-            .build())
+        Ok(Element::<Chrome> {
+            parent: Some(self),
+            state: std::marker::PhantomData::<Chrome>,
+        })
     }
-    fn navigate(&self, url: Url) -> crate::Result<CommandResult>
+    fn navigate(&self, url: Url) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {

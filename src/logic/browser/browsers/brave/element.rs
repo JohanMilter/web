@@ -9,15 +9,14 @@ use crate::{
             driver::{CommandResult, DriverFns},
             element::{Element, ReadActions, WriteActions},
         },
-    },
-    Error,
+    }, types::result::Result, types::error::Error
 };
 
 use super::Brave;
 
 impl<'a> WriteActions<'a, Brave> for Element<'a, Brave>
 {
-    fn click(&self, click_type: ClickType) -> crate::Result<CommandResult>
+    fn click(&self, click_type: ClickType) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -30,7 +29,7 @@ impl<'a> WriteActions<'a, Brave> for Element<'a, Brave>
             .ok_or_else(|| Error::InvalidRefference("Invalid 'Driver<Brave>' refference".into()))?
             .send_command(command)
     }
-    fn send_text(&self, text: &str) -> crate::Result<CommandResult>
+    fn send_text(&self, text: &str) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -46,7 +45,7 @@ impl<'a> WriteActions<'a, Brave> for Element<'a, Brave>
 }
 impl<'a> ReadActions<'a, Brave> for Element<'a, Brave>
 {
-    fn read(&self, attribute_key: &str) -> crate::Result<CommandResult>
+    fn read(&self, attribute_key: &str) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {

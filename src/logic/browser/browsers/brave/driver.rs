@@ -1,13 +1,19 @@
 use std::{path::Path, process::Command};
 
+use crate::{
+    browser::default::{
+        driver::{CommandResult, Driver, DriverFns},
+        tab::Tab,
+    },
+    types::result::Result,
+};
 use protocol::command::http;
-use crate::browser::default::{driver::{CommandResult, Driver, DriverFns}, tab::Tab};
 
 use super::Brave;
 
 impl<'a> DriverFns<'a, Brave> for Driver<Brave>
 {
-    fn new_tab(&'a self) -> crate::Result<Tab<'a, Brave>>
+    fn new_tab(&'a self) -> Result<Tab<'a, Brave>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -17,12 +23,12 @@ impl<'a> DriverFns<'a, Brave> for Driver<Brave>
 
         let _ = self.send_command(command);
 
-        Ok(Tab::<'a, Brave>::builder()
-            .parent(Some(self))
-            .state(std::marker::PhantomData::<Brave>)
-            .build())
+        Ok(Tab::<'a, Brave> {
+            parent: Some(self),
+            state: std::marker::PhantomData::<Brave>,
+        })
     }
-    fn open() -> crate::Result<Driver<Brave>>
+    fn open() -> Result<Driver<Brave>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -36,15 +42,15 @@ impl<'a> DriverFns<'a, Brave> for Driver<Brave>
                 .spawn()
                 .expect("Failed to start Brave");
 
-        let driver = Self::builder()
-            .state(std::marker::PhantomData::<Brave>)
-            .child(Some(child))
-            .build();
+        let driver = Self {
+            state: std::marker::PhantomData::<Brave>,
+            child: Some(child),
+        };
 
         let _ = driver.send_command(command);
         Ok(driver)
     }
-    fn send_command(&'a self, command: http::Builder) -> crate::Result<CommandResult>
+    fn send_command(&'a self, command: http::Builder) -> Result<CommandResult>
     {
         Ok(CommandResult::Void)
     }

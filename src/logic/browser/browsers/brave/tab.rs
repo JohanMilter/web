@@ -7,15 +7,14 @@ use crate::{
         driver::{CommandResult, DriverFns},
         element::Element,
         tab::{Tab, TabFns},
-    },
-    Error, From, Url,
+    }, types::error::Error, types::from::From, types::result::Result, types::url::Url
 };
 
 use super::Brave;
 
 impl<'a> TabFns<'a, Brave> for Tab<'a, Brave>
 {
-    fn get_element(&self, from: From) -> crate::Result<Element<Brave>>
+    fn get_element(&self, from: From) -> Result<Element<Brave>>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
@@ -28,12 +27,12 @@ impl<'a> TabFns<'a, Brave> for Tab<'a, Brave>
             .ok_or_else(|| Error::InvalidRefference("Invalid '' refference".into()))?
             .send_command(command);
 
-        Ok(Element::<Brave>::builder()
-            .parent(Some(self))
-            .state(std::marker::PhantomData::<Brave>)
-            .build())
+        Ok(Element::<Brave> {
+            parent: Some(self),
+            state: std::marker::PhantomData::<Brave>,
+        })
     }
-    fn navigate(&self, url: Url) -> crate::Result<CommandResult>
+    fn navigate(&self, url: Url) -> Result<CommandResult>
     {
         let mut command = http::Builder::default();
         command.push(http::Element::GET {
