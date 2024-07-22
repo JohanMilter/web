@@ -3,7 +3,7 @@ use macros::Builder;
 use protocol::command::http;
 
 
-use crate::types::result::Result;
+use crate::utils::types::result::Result;
 
 use super::tab::Tab;
 
@@ -18,7 +18,7 @@ pub trait DriverFns<'a, State>
     fn open() -> Result<Driver<State>>;
 
     //Commands
-    fn send_command(&'a self, command: http::Builder) -> Result<CommandResult>;
+    fn send_command(&'a self, command: http::Command) -> Result<CommandResult>;
 
     //Tabs
     fn new_tab(&'a self) -> Result<Tab<'a, State>>;

@@ -1,11 +1,11 @@
 use std::{path::Path, process::Command};
 
 use crate::{
-    browser::default::{
+    logic::browser::default::{
         driver::{CommandResult, Driver, DriverFns},
         tab::Tab,
     },
-    types::result::Result,
+    utils::types::result::Result,
 };
 use protocol::command::http;
 
@@ -15,9 +15,9 @@ impl<'a> DriverFns<'a, Chrome> for Driver<Chrome>
 {
     fn new_tab(&'a self) -> Result<Tab<'a, Chrome>>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -30,9 +30,9 @@ impl<'a> DriverFns<'a, Chrome> for Driver<Chrome>
     fn open() -> Result<Driver<Chrome>>
     {
         //Make the command Builder to build the commands to be sent to the remote server
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -52,7 +52,7 @@ impl<'a> DriverFns<'a, Chrome> for Driver<Chrome>
         let _ = driver.send_command(command);
         Ok(driver)
     }
-    fn send_command(&'a self, command: http::Builder) -> Result<CommandResult>
+    fn send_command(&'a self, command: http::Command) -> Result<CommandResult>
     {
         Ok(CommandResult::Void)
     }

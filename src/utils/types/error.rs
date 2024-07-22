@@ -4,5 +4,7 @@ use std::fmt::Display;
 pub enum Error
 {
     InvalidRefference(String),
+    CouldNotConnectToServer,
+    BadStream
 }
 

@@ -1,4 +1,4 @@
-use crate::{browser::action_parameters::click::ClickType, types::result::Result};
+use crate::{logic::browser::action_parameters::click::ClickType, utils::types::result::Result};
 
 use super::{driver::CommandResult, tab::Tab};
 

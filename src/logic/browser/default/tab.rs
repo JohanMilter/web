@@ -1,4 +1,4 @@
-use crate::{types::from::From, types::result::Result, types::url::Url};
+use crate::utils::types::{from::From, result::Result, url::Url};
 
 use super::{
     driver::{CommandResult, Driver},

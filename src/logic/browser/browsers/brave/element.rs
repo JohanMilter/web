@@ -3,13 +3,14 @@ use std::path::Path;
 use protocol::command::http;
 
 use crate::{
-    browser::{
+    logic::browser::{
         action_parameters::click::ClickType,
         default::{
             driver::{CommandResult, DriverFns},
             element::{Element, ReadActions, WriteActions},
         },
-    }, types::result::Result, types::error::Error
+    },
+    utils::types::{error::Error, result::Result},
 };
 
 use super::Brave;
@@ -18,9 +19,9 @@ impl<'a> WriteActions<'a, Brave> for Element<'a, Brave>
 {
     fn click(&self, click_type: ClickType) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -31,9 +32,9 @@ impl<'a> WriteActions<'a, Brave> for Element<'a, Brave>
     }
     fn send_text(&self, text: &str) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -47,9 +48,9 @@ impl<'a> ReadActions<'a, Brave> for Element<'a, Brave>
 {
     fn read(&self, attribute_key: &str) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 

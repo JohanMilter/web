@@ -3,24 +3,24 @@ use std::path::Path;
 use protocol::command::http;
 
 use crate::{
-    browser::{
+    logic::browser::{
         action_parameters::click::ClickType,
         default::{
             driver::{CommandResult, DriverFns},
             element::{Element, ReadActions, WriteActions},
         },
-    }, types::error::Error, types::result::Result
+    },
+    utils::types::{error::Error, result::Result},
 };
-
 use super::Chrome;
 
 impl<'a> WriteActions<'a, Chrome> for Element<'a, Chrome>
 {
     fn click(&self, click_type: ClickType) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -33,9 +33,9 @@ impl<'a> WriteActions<'a, Chrome> for Element<'a, Chrome>
 
     fn send_text(&self, text: &str) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
@@ -49,9 +49,9 @@ impl<'a> ReadActions<'a, Chrome> for Element<'a, Chrome>
 {
     fn read(&self, attribute_key: &str) -> Result<CommandResult>
     {
-        let mut command = http::Builder::default();
+        let mut command = http::Command::default();
         command.push(http::Element::GET {
-            value: Path::new(""),
+            value: String::from(""),
             version: 1.1,
         });
 
