@@ -6,12 +6,15 @@ mod tests
 {
     use std::path::Path;
 
+    use logic::browser::{behaviors::BrowserBehavior, chrome::Chrome, Browser};
+
     use super::*;
 
-    #[test]
-    fn test()
+    #[tokio::test]
+    async fn test()
     {
-        
+        let mut browser = Browser::<Chrome>::open().await;
+        _ = browser.kill();
     }
 
     #[test]
