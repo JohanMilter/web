@@ -1,28 +1,20 @@
-use std::error::Error;
-use std::future::Future;
-
 use crate::utils::types::result::Result;
 
 use super::behaviors::BrowserBehavior;
-use futures::stream::SplitSink;
+use super::tab::Tab;
 use futures::SinkExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tab::Tab;
 use tokio::net::TcpStream;
 use tokio::process::Command;
-use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-pub mod tab;
-
-pub struct Chrome
+pub struct Chrome<'a>
 {
     ws_stream: WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>,
     process: tokio::process::Child,
-    tabs: Vec<Tab>,
+    pub(crate) tabs: Vec<Tab<'a, Self>>,
 }
 impl BrowserBehavior for Chrome
 {
@@ -31,49 +23,29 @@ impl BrowserBehavior for Chrome
         let process = open_process(path);
         let targets = get_devtools_targets().await?;
         let ws_url = &targets[0].web_socket_debugger_url;
-        let (mut ws_stream, _) = connect_async(ws_url).await.expect("Failed to connect");
+        let (ws_stream, _) = connect_async(ws_url).await.expect("Failed to connect");
         
-        let command = serde_json::json!({
-            "id": 1, // Unique ID for the command
-            "method": "Page.navigate",
-            "params": {
-                "url": "https://crates.io/crates/serde"
-            }
-        });
-        ws_stream
-        .send(Message::Text(command.to_string()))
-        .await
-        .expect("Could not send message");
-
-        let mut this = Ok(Self {
+        Ok(Self {
             ws_stream,
-            tabs: vec![],
             process,
-        });
-
-
-        this.as_mut().unwrap().ws_stream.send(Message::Text(command.to_string()))
-        .await
-        .expect("Could not send message");
-
-        this
+        })
     }
-    async fn kill(&mut self)
-    {
-        _ = self.process.kill().await;
+    
+    async fn kill(&mut self) -> Result<()> {
+        self.process.kill().await?;
+        Ok(())
     }
     async fn send_command(&mut self, command: serde_json::Value) -> Result<()>
     {
-        todo!()
+        self.ws_stream
+        .send(Message::Text(command.to_string()))
+        .await?;
+        Ok(())
     }
-    fn navigate(&mut self, url: &str) -> impl Future<Output = Result<()>> {
-        self.send_command(serde_json::json!({
-            "id": 1, // Unique ID for the command
-            "method": "Page.navigate",
-            "params": {
-                "url": url
-            }
-        }))
+    async fn new_tab(&mut self) -> Result<super::tab::Tab<Self>>
+        where
+            Self: Sized {
+        todo!()
     }
 }
 

@@ -1,15 +1,19 @@
 use crate::utils::types::result::Result;
 
+use super::tab::Tab;
+
 pub trait BrowserBehavior
 {
-    async fn open(path: &str) -> Result<Self>
+    fn open(path: &str) -> impl std::future::Future<Output = Result<Self>> + Send
     where
         Self: Sized;
-    async fn kill(&mut self);
-    async fn send_command(&mut self, command: serde_json::Value) -> Result<()>;
-    async fn navigate(&mut self, url: &str) -> Result<()>;
+    fn kill(&mut self) -> impl std::future::Future<Output = Result<()>> + Send;
+    fn send_command(&mut self, command: serde_json::Value) -> impl std::future::Future<Output = Result<()>> + Send;
+    fn new_tab(&mut self) -> impl std::future::Future<Output = Result<Tab<Self>>> + Send
+    where
+        Self: Sized;
 }
 pub trait TabBehavior
 {
-    fn navigate(url: &str) -> Result<()>;
+    fn navigate(&mut self, url: &str) -> impl std::future::Future<Output = Result<()>> + Send;
 }

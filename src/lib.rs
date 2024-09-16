@@ -6,15 +6,15 @@ mod tests
 {
     use std::path::Path;
 
-    use logic::browser::{behaviors::BrowserBehavior, chrome::Chrome, Browser};
+    use logic::new_browser::{behaviors::{BrowserBehavior, TabBehavior}, chrome::Chrome, Browser};
 
     use super::*;
 
     #[tokio::test]
     async fn test()
     {
-        let mut browser = Browser::<Chrome>::open().await;
-        _ = browser.kill();
+        let (mut browser, mut tab) = Browser::<Chrome>::open(9222).await.unwrap();
+        _ = tab.navigate("https://www.netflix.com/browse");
     }
 
     #[test]
