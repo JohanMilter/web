@@ -1,2 +1,2 @@
-brace_style = "AlwaysNextLine"
-control_brace_style = "AlwaysNextLine"
+brace_style = "PreferSameLine"
+control_brace_style = "ClosingNextLine"
