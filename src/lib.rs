@@ -1,30 +1,38 @@
-pub mod logic;
-pub mod utils;
+mod logic;
+pub use logic::*;
+mod utils;
+pub use utils::*;
 
 #[cfg(test)]
-mod tests
-{
+mod tests {
     use std::{path::Path, time::Duration};
 
-    use logic::browser::{drivers::chrome::Chrome, Browser};
+    use logic::browser::{
+        behaviors::{BrowserRead, BrowserWrite},
+        drivers::chrome::Chrome,
+        tools::{behaviors::TabWrite, tab::TabOptions},
+        Browser, BrowserOptions,
+    };
 
     use super::*;
 
     #[tokio::test]
-    async fn test()
-    {
-        let (_browser, mut first_tab) = Browser::<Chrome>::open(9222).await.unwrap();
-        for _ in 0..5 {
-            _ = first_tab.navigate("https://www.wikipedia.org/").await.unwrap();
-            std::thread::sleep(Duration::from_secs(2));
-            _ = first_tab.navigate("https://www.example.com/").await.unwrap();
-            std::thread::sleep(Duration::from_secs(2));
-        }
+    async fn test() {
+
+        let (mut browser, mut first_tab) = Browser::<Chrome>::open(9222, None).await.unwrap();
+        _ = first_tab.navigate("https://www.example.com/").await;
+
+        let mut new_tab1 = browser.new_tab(None).await.unwrap();
+        _ = new_tab1.navigate("https://www.wikipedia.org/").await;
+
+        let mut new_tab2 = browser.new_tab(None).await.unwrap();
+        _ = new_tab2.navigate("https://www.netflix.com/").await;
+
+        std::thread::sleep(Duration::from_secs(3));
     }
 
     #[test]
-    fn generate_dir_tree()
-    {
+    fn generate_dir_tree() {
         let connector = chart::file_tree::Connectors::default();
         chart::file_tree::create_dir_tree_file(
             &connector,

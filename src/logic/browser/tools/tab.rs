@@ -1,37 +1,84 @@
-use std::net::Ipv4Addr;
+use super::behaviors::{TabRead, TabWrite};
+use crate::{
+    logic::{
+        browser::drivers::behaviors::{DriverRead, DriverWrite},
+        WSStream,
+    },
+    utils::types::{error::Error, result::Result},
+};
+use futures::{SinkExt, StreamExt};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-use futures::{stream::SplitSink, SinkExt, StreamExt};
-use serde::de::DeserializeOwned;
-use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, tungstenite::Message, WebSocketStream};
-
-use crate::{logic::browser::{drivers::behaviors::{DriverReadBehavior, DriverWriteBehavior}, rw::read::{ClickElementResponse, DOMAttributeModifiedResponse, GetDocumentResponse, NavigateResponse, ResolveNodeResponse}, By}, utils::types::{error::Error, result::Result}};
-
-type WSStream = (
-    SplitSink<WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>, Message>,
-    futures::stream::SplitStream<WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>>,
-);
-pub struct Tab<D: DriverReadBehavior + DriverWriteBehavior> {
-    driver: std::marker::PhantomData<D>,
-    stream: WSStream,
+#[derive(Debug, Clone)]
+pub struct TabOptions {
+    pub(crate) close_on_out_of_scope: bool,
+    pub(crate) connect_on_init: bool,
 }
-impl<D: DriverReadBehavior + DriverWriteBehavior> Tab<D> {
-    pub async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
+impl Default for TabOptions {
+    fn default() -> Self {
+        Self {
+            close_on_out_of_scope: true,
+            connect_on_init: true,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Tab<D: DriverRead + DriverWrite> {
+    #[serde(skip)]
+    state: std::marker::PhantomData<D>,
+    #[serde(skip)]
+    pub(crate) stream: Option<WSStream>,
+    #[serde(skip)]
+    pub(crate) options: TabOptions,
+    pub(crate) description: String,
+    #[serde(rename = "devtoolsFrontendUrl")]
+    pub(crate) devtools_frontend_url: String,
+    pub(crate) id: String,
+    pub(crate) title: String,
+    #[serde(rename = "type")]
+    pub(crate) target_type: String,
+    pub(crate) url: String,
+    #[serde(rename = "webSocketDebuggerUrl")]
+    pub(crate) web_socket_debugger_url: String,
+}
+impl<D: DriverRead + DriverWrite> Drop for Tab<D> {
+    fn drop(&mut self) {
+        if self.options.close_on_out_of_scope {
+            //Close the tab
+        }
+    }
+}
+impl<D: DriverRead + DriverWrite> TabRead for Tab<D> {}
+impl<D: DriverRead + DriverWrite> TabWrite for Tab<D> {
+    async fn connect(&mut self) -> Result<()> {
+        self.stream = Some(
+            connect_async(&self.web_socket_debugger_url)
+                .await?
+                .0
+                .split(),
+        );
+        Ok(())
+    }
+    async fn disconnect(&mut self) -> Result<()> {
+        let stream = self.stream.as_mut().unwrap();
+        stream.0.close().await?;
+        Ok(())
+    }
+    async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
     where
         T: DeserializeOwned, {
-        println!("Sending command: \n{}", command);
         self.stream
+            .as_mut()
+            .unwrap()
             .0
             .send(Message::Text(command.to_string()))
             .await?;
-
-        println!("Waiting for repsonse:");
-        // Wait for the response
-        while let Some(msg) = self.stream.1.next().await {
+        while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
             match msg {
                 Ok(Message::Text(text)) => match serde_json::from_str::<T>(&text) {
                     Ok(response) => {
-                        println!("Deserializing:\n{text}\n");
                         return Ok(response);
                     }
                     Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
@@ -42,46 +89,10 @@ impl<D: DriverReadBehavior + DriverWriteBehavior> Tab<D> {
         }
         Err(Error::BadStream)
     }
-    pub async fn init(address: Ipv4Addr, port: u16) -> Result<Tab<D>> {
-        let targets = D::get_devtools_targets(address, port).await?;
-        println!("{}", targets.len());
-        let target = &targets[targets.len() - 2];
-        let ws_url = &target.web_socket_debugger_url;
-
-        Ok(Self {
-            driver: std::marker::PhantomData::<D>,
-            stream: connect_async
-            (ws_url)
-                .await
-                .expect("Failed to connect")
-                .0
-                .split(),
-        })
+    async fn navigate(&mut self, url: &str) -> Result<serde_json::Value> {
+        self.send_command(D::navigate(url)).await
     }
-}
-
-impl<D: DriverReadBehavior + DriverWriteBehavior> Tab<D>  {
-    pub async fn navigate(&mut self, url: &str) -> Result<NavigateResponse> {
-        self.send_command::<NavigateResponse>(D::navigate(url))
-            .await
-    }
-    pub async fn get_element(&mut self, by: By) -> Result<DOMAttributeModifiedResponse> {
-        let document = self.get_document().await?;
-        let node_id = document.result.root.node_id;
-
-        self.send_command::<DOMAttributeModifiedResponse>(D::get_element(by, node_id))
-            .await
-    }
-    pub async fn get_document(&mut self) -> Result<GetDocumentResponse> {
-        self.send_command::<GetDocumentResponse>(D::get_document())
-            .await
-    }
-    pub async fn resolve_node(&mut self, id: u32) -> Result<ResolveNodeResponse> {
-        self.send_command::<ResolveNodeResponse>(D::resolve_node(id))
-            .await
-    }
-    pub async fn click_element(&mut self, id: &str) -> Result<ClickElementResponse> {
-        self.send_command::<ClickElementResponse>(D::click_element(id))
-            .await
+    async fn kill(&mut self) -> Result<serde_json::Value> {
+        self.send_command(D::kill_tab(&self.id)).await
     }
 }

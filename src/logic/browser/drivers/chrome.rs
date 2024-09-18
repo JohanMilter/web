@@ -1,18 +1,38 @@
-use std::net::Ipv4Addr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use reqwest::Client;
 use tokio::process::Command;
 
 use crate::{
-    logic::browser::{rw::read::DevToolsTarget, tools::tab::Tab, By},
+    logic::browser::tools::{behaviors::TabWrite, tab::Tab},
     utils::types::result::Result,
 };
 
-use super::behaviors::{DriverReadBehavior, DriverWriteBehavior};
+use super::behaviors::{DriverRead, DriverWrite};
 
+static mut CURRENT_ID: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug)]
 pub struct Chrome;
-impl DriverReadBehavior for Chrome {
-    fn open_process(address: Ipv4Addr, port: u16) -> tokio::process::Child {
+impl DriverRead for Chrome {
+    async fn get_tabs(connection: (std::net::Ipv4Addr, u16)) -> Result<Vec<Tab<Self>>>
+    where
+        Self: Sized + DriverWrite, {
+            Ok(Client::new()
+            .get(&format!("http://{}:{}/json/list", connection.0, connection.1)) // CDP endpoint to get available tabs
+            .send()
+            .await
+            .expect("Could not send")
+            .json::<Vec<Tab<Self>>>()
+            .await
+            .expect("Could not convert to json"))
+    }
+}
+impl DriverWrite for Chrome {
+    fn open_process(address: std::net::Ipv4Addr, port: u16) -> tokio::process::Child {
+        unsafe {
+            CURRENT_ID.fetch_add(1, Ordering::SeqCst);
+        }
         const PATH: &str = r"C:\Program Files\Google\Chrome\Application\chrome.exe";
         Command::new(PATH)
             .args([
@@ -31,78 +51,43 @@ impl DriverReadBehavior for Chrome {
             .spawn()
             .expect("Failed to start Chrome")
     }
-    async fn get_devtools_targets(address: Ipv4Addr, port: u16) -> Result<Vec<DevToolsTarget>> {
-        Ok(Client::new()
-            .get(&format!("http://{address}:{port}/json")) // CDP endpoint to get available tabs
-            .send()
-            .await
-            .expect("Could not send")
-            .json::<Vec<DevToolsTarget>>()
-            .await
-            .expect("Could not convert to json"))
-    }
-}
-impl DriverWriteBehavior for Chrome {
     fn navigate(url: &str) -> serde_json::Value {
+        let current_id;
+        unsafe {
+            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
+        }
         serde_json::json!({
-            "id": 1,
+            "id": current_id,
             "method": "Page.navigate",
             "params": {
                 "url": url
             }
         })
     }
-    fn get_element(by: By, node_id: u32) -> serde_json::Value {
-        match by {
-            By::Id(id) => serde_json::json!({
-                "id": 3,
-                "method": "DOM.querySelector",
-                "params": {
-                    "nodeId": node_id,
-                    "selector": format!("#{id}")
-                }
-            }),
-            By::XPath(xpath) => serde_json::json!({}),
+    fn kill_tab(target_id: &str) -> serde_json::Value {
+        let current_id;
+        unsafe {
+            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
         }
-    }
-    fn get_document() -> serde_json::Value {
         serde_json::json!({
-            "id": 2,
-            "method": "DOM.getDocument"
-        })
-    }
-    fn resolve_node(id: u32) -> serde_json::Value {
-        serde_json::json!({
-            "id": 4,
-            "method": "DOM.resolveNode",
+            "id": current_id,
+            "method": "Target.closeTarget",
             "params": {
-                "nodeId": id
+                "targetId": target_id
             }
         })
     }
-    fn click_element(object_id: &str) -> serde_json::Value {
+    fn new_tab() -> serde_json::Value {
+        let current_id;
+        unsafe {
+            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
+        }
         serde_json::json!({
-            "id": 5,
-            "method": "Runtime.callFunctionOn",
+            "id": current_id,
+            "method": "Target.createTarget",
             "params": {
-                "functionDeclaration": "function() { this.click(); }",
-                "objectId": object_id,
-                "returnByValue": false,
-                "awaitPromise": false
+                "url": "about:blank"
             }
         })
-    }
-
-    async fn new_tab<D: DriverReadBehavior + DriverWriteBehavior>(
-        address: Ipv4Addr,
-        port: u16,
-    ) -> Result<Tab<D>> {
-        let url = format!("http://{address}:{port}/json/new");
-        println!("{:?}", url);
-        let resp = reqwest::get(&url).await.unwrap();
-        println!("{:?}", resp);
-        println!("{:?}", url);
-        // Deserialize the response into DevToolsTarget
-        Tab::init(address, port).await
     }
 }

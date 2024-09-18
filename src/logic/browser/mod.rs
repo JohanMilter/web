@@ -1,48 +1,140 @@
 use std::net::Ipv4Addr;
 
-use drivers::behaviors::{DriverReadBehavior, DriverWriteBehavior};
+use behaviors::{BrowserRead, BrowserWrite};
+use drivers::behaviors::{DriverRead, DriverWrite};
+use futures::{SinkExt, StreamExt};
+use responses::new_tab::NewTabResponse;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tools::{
+    behaviors::{TabRead, TabWrite},
+    tab::{Tab, TabOptions},
+};
 
-use tools::tab::Tab;
+use crate::utils::types::{error::Error, result::Result};
 
-use crate::utils::types::result::Result;
+use super::WSStream;
 
+pub mod behaviors;
 pub mod drivers;
-pub mod rw;
+pub mod responses;
 pub mod tools;
 
-pub struct Browser<D: DriverReadBehavior + DriverWriteBehavior + Send> {
-    driver: std::marker::PhantomData<D>,
-    process: tokio::process::Child,
-    ipv4addr: Ipv4Addr,
-    port: u16,
+#[derive(Debug, Clone)]
+pub struct BrowserOptions {
+    pub(crate) close_on_out_of_scope: bool,
+    pub(crate) connect_on_init: bool,
 }
-impl<D: DriverReadBehavior + DriverWriteBehavior + Send> Drop for Browser<D> {
-    fn drop(&mut self) {
-        _ = self.process.start_kill();
+impl Default for BrowserOptions {
+    fn default() -> Self {
+        Self {
+            close_on_out_of_scope: true,
+            connect_on_init: true,
+        }
     }
 }
-impl<D: DriverReadBehavior + DriverWriteBehavior + Send> Browser<D> {
-    pub async fn open(port: u16) -> Result<(Self, Tab<D>)> {
-        //The browser should be open on the local machine
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Browser<D: DriverRead + DriverWrite> {
+    #[serde(rename = "webSocketDebuggerUrl")]
+    pub(crate) web_socket_debugger_url: String,
+    #[serde(skip)]
+    state: std::marker::PhantomData<D>,
+    #[serde(skip)]
+    pub(crate) stream: Option<WSStream>,
+    #[serde(skip)]
+    pub(crate) options: BrowserOptions,
+    #[serde(skip)]
+    pub(crate) process: Option<tokio::process::Child>,
+    #[serde(skip)]
+    pub(crate) connection: Option<(Ipv4Addr, u16)>,
+}
+impl<D: DriverRead + DriverWrite> Drop for Browser<D> {
+    fn drop(&mut self) {
+        if self.options.close_on_out_of_scope {
+            _ = self.process.as_mut().unwrap().start_kill();
+        }
+    }
+}
+impl<D: DriverRead + DriverWrite> BrowserRead<D> for Browser<D> {
+    async fn get_tabs(&self) -> Result<Vec<Tab<D>>>
+    where
+        Self: Sized, {
+        D::get_tabs(self.connection.unwrap()).await
+    }
+}
+
+impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
+    async fn open(port: u16, options: Option<BrowserOptions>) -> Result<(Self, Tab<D>)>
+    where
+        Self: Sized, {
         const LOCAL_ADDRESS: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
 
-        //Build the instance
-        Ok((
-            Self {
-                driver: std::marker::PhantomData::<D>,
-                process: D::open_process(LOCAL_ADDRESS, port),
-                ipv4addr: LOCAL_ADDRESS,
-                port,
-            },
-            Tab::init(LOCAL_ADDRESS, port).await.unwrap(),
-        ))
-    }
-    pub async fn new_tab(&self) -> Result<Tab<D>> {
-        D::new_tab(self.ipv4addr, self.port).await
-    }
-}
+        let process = Some(D::open_process(LOCAL_ADDRESS, port));
+        let url = format!("http://{LOCAL_ADDRESS}:{port}/json/version");
+        let resp = reqwest::get(&url).await.unwrap();
+        let mut this = resp.json::<Browser<D>>().await.unwrap();
+        this.connection = Some((LOCAL_ADDRESS, port));
+        this.process = process;
+        this.state = std::marker::PhantomData::<D>;
+        this.options = options.unwrap_or_default();
+        this.connect().await?;
 
-pub enum By {
-    Id(String),
-    XPath(String),
+        let mut first_tab = this.get_tabs().await.unwrap().remove(0);
+        if this.options.connect_on_init {
+            first_tab.connect().await?;
+        }
+        Ok((this, first_tab))
+    }
+    async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
+    where
+        T: DeserializeOwned, {
+        self.stream
+            .as_mut()
+            .unwrap()
+            .0
+            .send(Message::Text(command.to_string()))
+            .await?;
+        while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
+            match msg {
+                Ok(Message::Text(text)) => match serde_json::from_str::<T>(&text) {
+                    Ok(response) => {
+                        return Ok(response);
+                    }
+                    Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
+                },
+                Ok(_) => continue,
+                Err(_) => return Err(Error::BadStream),
+            }
+        }
+        Err(Error::BadStream)
+    }
+    async fn new_tab(&mut self, options: Option<TabOptions>) -> Result<Tab<D>> {
+        let resp: NewTabResponse = self
+            .send_command::<NewTabResponse>(D::new_tab())
+            .await
+            .unwrap();
+        let mut tab = self
+            .get_tabs()
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|tab| tab.id == resp.result.target_id)
+            .unwrap();
+        tab.options = options.unwrap_or_default();
+        if tab.options.connect_on_init{
+            _ = tab.connect().await;
+        }
+        Ok(tab)
+    }
+    async fn connect(&mut self) -> Result<()> {
+        let (ws_stream, _) = connect_async(&self.web_socket_debugger_url).await?;
+        self.stream = Some(ws_stream.split());
+        Ok(())
+    }
+    async fn disconnect(&mut self) -> Result<()> {
+        let stream = self.stream.as_mut().unwrap();
+        stream.0.close().await?;
+        Ok(())
+    }
 }

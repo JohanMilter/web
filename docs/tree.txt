@@ -4,6 +4,7 @@
         ├─ Cargo.lock
         ├─ Cargo.toml
         ├─ LICENSE
+        ├─ README.md
         ├─ rustfmt.toml
         ├─ docs ─┐
         │        ├─ tree.txt
@@ -11,47 +12,38 @@
         │                    └─ driver.md
         ├─ src ─┐
         │       ├─ lib.rs
-        │       ├─ rules.txt
         │       ├─ main.rs
+        │       ├─ rules.txt
         │       ├─ assets ──
-        │       ├─ utils ─┐
-        │       │         ├─ from.rs
+        │       ├─ logic ─┐
         │       │         ├─ mod.rs
-        │       │         ├─ url.rs
-        │       │         └─ error.rs
-        │       └─ logic ─┐
+        │       │         ├─ browser ─┐
+        │       │         │           ├─ behaviors.rs
+        │       │         │           ├─ mod.rs
+        │       │         │           ├─ drivers ─┐
+        │       │         │           │           ├─ behaviors.rs
+        │       │         │           │           ├─ chrome.rs
+        │       │         │           │           └─ mod.rs
+        │       │         │           └─ tools ─┐
+        │       │         │                     ├─ behaviors.rs
+        │       │         │                     ├─ element.rs
+        │       │         │                     ├─ mod.rs
+        │       │         │                     └─ tab.rs
+        │       │         ├─ crawler ─┐
+        │       │         │           └─ mod.rs
+        │       │         └─ scraper ─┐
+        │       │                     └─ mod.rs
+        │       └─ utils ─┐
         │                 ├─ mod.rs
-        │                 ├─ browser ─┐
-        │                 │           ├─ mod.rs
-        │                 │           ├─ browsers ─┐
-        │                 │           │            ├─ mod.rs
-        │                 │           │            ├─ chrome ─┐
-        │                 │           │            │          ├─ driver.rs
-        │                 │           │            │          ├─ element.rs
-        │                 │           │            │          ├─ mod.rs
-        │                 │           │            │          └─ tab.rs
-        │                 │           │            ├─ edge ─┐
-        │                 │           │            │        ├─ driver.rs
-        │                 │           │            │        ├─ element.rs
-        │                 │           │            │        ├─ mod.rs
-        │                 │           │            │        └─ tab.rs
-        │                 │           │            └─ brave ─┐
-        │                 │           │                      ├─ driver.rs
-        │                 │           │                      ├─ element.rs
-        │                 │           │                      ├─ mod.rs
-        │                 │           │                      └─ tab.rs
-        │                 │           ├─ default ─┐
-        │                 │           │           ├─ mod.rs
-        │                 │           │           ├─ tab.rs
-        │                 │           │           ├─ driver.rs
-        │                 │           │           └─ element.rs
-        │                 │           └─ action_parameters ─┐
-        │                 │                                 ├─ mod.rs
-        │                 │                                 └─ click.rs
-        │                 ├─ crawler ─┐
-        │                 │           └─ mod.rs
-        │                 ├─ scraper ─┐
-        │                 │           └─ mod.rs
-        │                 └─ server ─┐
-        │                            └─ mod.rs
+        │                 ├─ functions ─┐
+        │                 │             └─ mod.rs
+        │                 ├─ traits ─┐
+        │                 │          └─ mod.rs
+        │                 └─ types ─┐
+        │                           ├─ error.rs
+        │                           ├─ from.rs
+        │                           ├─ mod.rs
+        │                           ├─ result.rs
+        │                           ├─ tensor.rs
+        │                           └─ url.rs
         └─ test ──
