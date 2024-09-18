@@ -6,20 +6,20 @@ mod tests
 {
     use std::{path::Path, time::Duration};
 
-    use logic::browser::{drivers::chrome::Chrome, Browser, By};
+    use logic::browser::{drivers::chrome::Chrome, Browser};
 
     use super::*;
 
     #[tokio::test]
     async fn test()
     {
-        let (mut browser, mut first_tab) = Browser::<Chrome>::open(9222).await.unwrap();
-        _ = first_tab.navigate("https://www.wikipedia.org/").await.unwrap();
-        std::thread::sleep(Duration::from_secs(5));
-        let mut new_tab = browser.new_tab().await.unwrap();
-        _ = new_tab.navigate("https://www.example.com/").await.unwrap();
-        
-        std::thread::sleep(Duration::from_secs(10));
+        let (_browser, mut first_tab) = Browser::<Chrome>::open(9222).await.unwrap();
+        for _ in 0..5 {
+            _ = first_tab.navigate("https://www.wikipedia.org/").await.unwrap();
+            std::thread::sleep(Duration::from_secs(2));
+            _ = first_tab.navigate("https://www.example.com/").await.unwrap();
+            std::thread::sleep(Duration::from_secs(2));
+        }
     }
 
     #[test]
