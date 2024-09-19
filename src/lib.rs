@@ -7,28 +7,27 @@ pub use utils::*;
 mod tests {
     use std::{path::Path, time::Duration};
 
+    use browser::tools::behaviors::{ElementWrite, TabRead};
     use logic::browser::{
         behaviors::{BrowserRead, BrowserWrite},
         drivers::chrome::Chrome,
         tools::{behaviors::TabWrite, tab::TabOptions},
         Browser, BrowserOptions,
     };
+    use types::by::By;
 
     use super::*;
 
     #[tokio::test]
     async fn test() {
+        let (mut _browser, mut first_tab) = Browser::<Chrome>::open(9222, None).await.unwrap();
+        _ = first_tab.navigate("https://www.wikipedia.org/").await;
+        let element = first_tab.get_element(By::Id("searchInput")).await.unwrap();
+        _ = element.set_text("Hello", &mut first_tab).await;
+        let submit_element = first_tab.get_element(By::XPath("/html/body/main/div[2]/form/fieldset/button")).await.unwrap();
+        _ = submit_element.click(&mut first_tab).await;
 
-        let (mut browser, mut first_tab) = Browser::<Chrome>::open(9222, None).await.unwrap();
-        _ = first_tab.navigate("https://www.example.com/").await;
-
-        let mut new_tab1 = browser.new_tab(None).await.unwrap();
-        _ = new_tab1.navigate("https://www.wikipedia.org/").await;
-
-        let mut new_tab2 = browser.new_tab(None).await.unwrap();
-        _ = new_tab2.navigate("https://www.netflix.com/").await;
-
-        std::thread::sleep(Duration::from_secs(3));
+        std::thread::sleep(Duration::from_secs(5));
     }
 
     #[test]

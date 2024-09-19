@@ -10,6 +10,7 @@ pub enum Error {
     WebSocketError(TTError),
     IOError(IOError),
     SJError(SJError),
+    ElementNotFound
 }
 
 impl From<TTError> for Error {

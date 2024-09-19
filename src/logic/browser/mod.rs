@@ -3,7 +3,6 @@ use std::net::Ipv4Addr;
 use behaviors::{BrowserRead, BrowserWrite};
 use drivers::behaviors::{DriverRead, DriverWrite};
 use futures::{SinkExt, StreamExt};
-use responses::new_tab::NewTabResponse;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tools::{
@@ -17,7 +16,6 @@ use super::WSStream;
 
 pub mod behaviors;
 pub mod drivers;
-pub mod responses;
 pub mod tools;
 
 #[derive(Debug, Clone)]
@@ -110,19 +108,23 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
         Err(Error::BadStream)
     }
     async fn new_tab(&mut self, options: Option<TabOptions>) -> Result<Tab<D>> {
-        let resp: NewTabResponse = self
-            .send_command::<NewTabResponse>(D::new_tab())
+        let resp = self
+            .send_command::<serde_json::Value>(D::new_tab())
             .await
             .unwrap();
+        let lookup_id = resp["result"]["targetId"]
+            .as_str()
+            .ok_or(Error::ElementNotFound)?
+            .to_string();
         let mut tab = self
             .get_tabs()
             .await
             .unwrap()
             .into_iter()
-            .find(|tab| tab.id == resp.result.target_id)
+            .find(|tab| tab.id == lookup_id)
             .unwrap();
         tab.options = options.unwrap_or_default();
-        if tab.options.connect_on_init{
+        if tab.options.connect_on_init {
             _ = tab.connect().await;
         }
         Ok(tab)

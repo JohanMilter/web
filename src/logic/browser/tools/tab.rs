@@ -1,9 +1,15 @@
-use super::behaviors::{TabRead, TabWrite};
+use std::{future::Future, marker::PhantomData};
+
+use super::{
+    behaviors::{TabRead, TabWrite},
+    element::Element,
+};
 use crate::{
     logic::{
         browser::drivers::behaviors::{DriverRead, DriverWrite},
         WSStream,
     },
+    types::by::By,
     utils::types::{error::Error, result::Result},
 };
 use futures::{SinkExt, StreamExt};
@@ -50,8 +56,21 @@ impl<D: DriverRead + DriverWrite> Drop for Tab<D> {
         }
     }
 }
-impl<D: DriverRead + DriverWrite> TabRead for Tab<D> {}
-impl<D: DriverRead + DriverWrite> TabWrite for Tab<D> {
+impl<D: DriverRead + DriverWrite> TabRead<D> for Tab<D> {
+    async fn get_element(&mut self, by: By<'_>) -> Result<Element<D>> {
+        let command = D::runtime_evaluate(D::get_element(by));
+        let response = self.send_command::<serde_json::Value>(command).await?;
+        let object_id = response["result"]["result"]["objectId"]
+            .as_str()
+            .ok_or(Error::ElementNotFound)?
+            .to_string();
+        Ok(Element::<D> {
+            state: PhantomData::<D>,
+            object_id,
+        })
+    }
+}
+impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
     async fn connect(&mut self) -> Result<()> {
         self.stream = Some(
             connect_async(&self.web_socket_debugger_url)
@@ -77,14 +96,15 @@ impl<D: DriverRead + DriverWrite> TabWrite for Tab<D> {
             .await?;
         while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
             match msg {
-                Ok(Message::Text(text)) => match serde_json::from_str::<T>(&text) {
-                    Ok(response) => {
-                        return Ok(response);
+                Ok(Message::Text(text)) => {
+                    println!("Received msg: \n{text}");
+                    match serde_json::from_str::<T>(&text) {
+                        Ok(response) => return Ok(response),
+                        Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
                     }
-                    Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
-                },
+                }
                 Ok(_) => continue,
-                Err(_) => return Err(Error::BadStream),
+                Err(_) => eprintln!("Can't deserialize:\n{:?}\n", msg),
             }
         }
         Err(Error::BadStream)
