@@ -41,13 +41,13 @@ impl DriverRead for Chrome {
             }
             // Handle other variants as needed
         };
-        serde_json::json!({
+        Self::runtime_evaluate(serde_json::json!({
             "expression": expression,
             "objectGroup": "console",
             "includeCommandLineAPI": true,
             "returnByValue": false,
             "awaitPromise": false,
-        })
+        }))
     }
 }
 impl DriverWrite for Chrome {
@@ -69,6 +69,8 @@ impl DriverWrite for Chrome {
                 "--disable-translate",
                 "--disable-popup-blocking", // Allow popups for automation
                 "--auto-open-devtools-for-tabs",
+                "--enable-logging",         // Enable logging
+                "--v=1",
             ])
             .spawn()
             .expect("Failed to start Chrome")
@@ -113,20 +115,20 @@ impl DriverWrite for Chrome {
         })
     }
     fn click_element(object_id: &str) -> serde_json::Value {
-        serde_json::json!({
+        Self::runtime_call_function_on(serde_json::json!({
             "objectId": object_id,
             "functionDeclaration": "function() { this.click(); }",
             "returnByValue": false,
             "awaitPromise": false,
-        })
+        }))
     }
-    fn get_element_innertext(object_id: &str) -> serde_json::Value {
-        serde_json::json!({
+    fn get_text(object_id: &str) -> serde_json::Value {
+        Self::runtime_call_function_on(serde_json::json!({
             "objectId": object_id,
             "functionDeclaration": "function() { return this.innerText; }",
             "returnByValue": true,
             "awaitPromise": false,
-        })
+        }))
     }
     fn runtime_evaluate(params: serde_json::Value) -> serde_json::Value {
         let current_id;
@@ -151,12 +153,12 @@ impl DriverWrite for Chrome {
         })
     }
     fn focus(object_id: &str) -> serde_json::Value {
-        serde_json::json!({
+        Self::runtime_call_function_on(serde_json::json!({
             "objectId": object_id,
             "functionDeclaration": "function() { this.focus(); }",
             "returnByValue": false,
             "awaitPromise": false,
-        })
+        }))
     }
     fn input_insert_text(params: serde_json::Value) -> serde_json::Value {
         let current_id;
@@ -170,9 +172,9 @@ impl DriverWrite for Chrome {
         })
     }
     fn set_text(text: &str) -> serde_json::Value {
-        serde_json::json!({
+        Self::input_insert_text(serde_json::json!({
             "text": text,
-        })
+        }))
     }
 
     fn input_dispatch_key_event(params: serde_json::Value) -> serde_json::Value {

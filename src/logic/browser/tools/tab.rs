@@ -1,4 +1,4 @@
-use std::{future::Future, marker::PhantomData};
+use std::{future::Future, marker::PhantomData, sync::Arc};
 
 use super::{
     behaviors::{TabRead, TabWrite},
@@ -14,6 +14,7 @@ use crate::{
 };
 use futures::{SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio::sync::RwLock;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[derive(Debug, Clone)]
@@ -35,7 +36,7 @@ pub struct Tab<D: DriverRead + DriverWrite> {
     #[serde(skip)]
     state: std::marker::PhantomData<D>,
     #[serde(skip)]
-    pub(crate) stream: Option<WSStream>,
+    pub(crate) stream: Option<Arc<RwLock<WSStream>>>,
     #[serde(skip)]
     pub(crate) options: TabOptions,
     pub(crate) description: String,
@@ -57,44 +58,12 @@ impl<D: DriverRead + DriverWrite> Drop for Tab<D> {
     }
 }
 impl<D: DriverRead + DriverWrite> TabRead<D> for Tab<D> {
-    async fn get_element(&mut self, by: By<'_>) -> Result<Element<D>> {
-        let command = D::runtime_evaluate(D::get_element(by));
-        let response = self.send_command::<serde_json::Value>(command).await?;
-        let object_id = response["result"]["result"]["objectId"]
-            .as_str()
-            .ok_or(Error::ElementNotFound)?
-            .to_string();
-        Ok(Element::<D> {
-            state: PhantomData::<D>,
-            object_id,
-        })
-    }
-}
-impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
-    async fn connect(&mut self) -> Result<()> {
-        self.stream = Some(
-            connect_async(&self.web_socket_debugger_url)
-                .await?
-                .0
-                .split(),
-        );
-        Ok(())
-    }
-    async fn disconnect(&mut self) -> Result<()> {
-        let stream = self.stream.as_mut().unwrap();
-        stream.0.close().await?;
-        Ok(())
-    }
-    async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
+    async fn send_command<T>(&self, command: serde_json::Value) -> Result<T>
     where
         T: DeserializeOwned, {
-        self.stream
-            .as_mut()
-            .unwrap()
-            .0
-            .send(Message::Text(command.to_string()))
-            .await?;
-        while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
+        let mut stream = self.stream.as_ref().unwrap().write().await;
+        stream.0.send(Message::Text(command.to_string())).await?;
+        while let Some(msg) = stream.1.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
                     println!("Received msg: \n{text}");
@@ -109,10 +78,41 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
         }
         Err(Error::BadStream)
     }
-    async fn navigate(&mut self, url: &str) -> Result<serde_json::Value> {
+    async fn get_element(&self, by: By<'_>) -> Result<Element<D>> {
+        let command = D::get_element(by);
+        let response = self.send_command::<serde_json::Value>(command).await?;
+        let object_id = response["result"]["result"]["objectId"]
+            .as_str()
+            .ok_or(Error::ElementNotFound)?
+            .to_string();
+        Ok(Element::<D> {
+            state: PhantomData::<D>,
+            object_id,
+            parent: Some(self.stream.as_ref().unwrap().clone()),
+        })
+    }
+}
+impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
+    
+    async fn connect(&mut self) -> Result<()> {
+        self.stream = Some(Arc::new(RwLock::new(
+            connect_async(&self.web_socket_debugger_url)
+                .await?
+                .0
+                .split(),
+        )));
+        Ok(())
+    }
+    async fn disconnect(&self) -> Result<()> {
+        let mut stream = self.stream.as_ref().unwrap().write().await;
+        stream.0.close().await?;
+        Ok(())
+    }
+    
+    async fn navigate(&self, url: &str) -> Result<serde_json::Value> {
         self.send_command(D::navigate(url)).await
     }
-    async fn kill(&mut self) -> Result<serde_json::Value> {
+    async fn kill(&self) -> Result<serde_json::Value> {
         self.send_command(D::kill_tab(&self.id)).await
     }
 }

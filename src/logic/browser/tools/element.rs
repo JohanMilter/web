@@ -1,29 +1,65 @@
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-use crate::{logic::browser::drivers::behaviors::{DriverRead, DriverWrite}, types::{error::Error, result::Result}};
+use futures::{SinkExt, StreamExt};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio::sync::RwLock;
+use tokio_tungstenite::tungstenite::Message;
 
-use super::{behaviors::{ElementRead, ElementWrite, TabWrite}, tab::Tab};
+use crate::{
+    logic::browser::drivers::behaviors::{DriverRead, DriverWrite},
+    types::{error::Error, result::Result}, WSStream,
+};
+
+use super::{
+    behaviors::{ElementRead, ElementWrite, TabWrite},
+    tab::Tab,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Element<D: DriverRead + DriverWrite>{
+pub struct Element<D: DriverRead + DriverWrite> {
+    #[serde(skip)]
+    pub(crate) parent: Option<Arc<RwLock<WSStream>>>,
     #[serde(skip)]
     pub(crate) state: std::marker::PhantomData<D>,
     pub(crate) object_id: String,
 }
 impl<D: DriverRead + DriverWrite> ElementRead<D> for Element<D> {
-    async fn text(&mut self, tab: &mut Tab<D>) -> Result<serde_json::Value> {
-        tab.send_command(D::runtime_call_function_on(D::get_element_innertext(&self.object_id))).await
+    async fn get_text(&self) -> Result<serde_json::Value> {
+        self.send_command(D::get_text(&self.object_id)).await
+    }
+    async fn send_command<T>(&self, command: serde_json::Value) -> Result<T>
+    where
+        T: DeserializeOwned, {
+        let mut stream = self.parent.as_ref().unwrap().write().await;
+        stream.0.send(Message::Text(command.to_string())).await?;
+        while let Some(msg) = stream.1.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    println!("Received msg: \n{text}");
+                    match serde_json::from_str::<T>(&text) {
+                        Ok(response) => return Ok(response),
+                        Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
+                    }
+                }
+                Ok(_) => continue,
+                Err(_) => eprintln!("Can't deserialize:\n{:?}\n", msg),
+            }
+        }
+        Err(Error::BadStream)
     }
 }
 impl<D: DriverRead + DriverWrite> ElementWrite<D> for Element<D> {
-    async fn click(&self, tab: &mut Tab<D>) -> Result<serde_json::Value> {
-        tab.send_command(D::runtime_call_function_on(D::click_element(&self.object_id))).await
+    
+    async fn click(&self) -> Result<serde_json::Value> {
+        self.send_command(D::click_element(&self.object_id)).await
     }
-    async fn focus(&self, tab: &mut Tab<D>) -> Result<serde_json::Value> {
-        tab.send_command(D::runtime_call_function_on(D::focus(&self.object_id))).await
+    async fn focus(&self) -> Result<serde_json::Value> {
+        self.send_command(D::focus(&self.object_id)).await
     }
-    async fn set_text(&self, text: &str, tab: &mut Tab<D>) -> Result<serde_json::Value> {
-        _ = self.focus(tab).await;
-        tab.send_command(D::input_insert_text(D::set_text(text))).await
+    async fn set_text(&self, text: &str) -> Result<serde_json::Value> {
+        _ = self.focus().await;
+        self.send_command(D::set_text(text)).await
     }
+    
+    
 }

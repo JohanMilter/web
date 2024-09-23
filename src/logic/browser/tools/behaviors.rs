@@ -8,23 +8,26 @@ use super::{element::Element, tab::Tab};
 
 
 pub trait TabRead<D: DriverRead + DriverWrite>{
-    fn get_element(&mut self, by: By) -> impl Future<Output = Result<Element<D>>>;
-}
-pub trait TabWrite<D: DriverRead+ DriverWrite>{
-    fn send_command<T>(&mut self, command: serde_json::Value) -> impl Future<Output = Result<T>>
+    fn get_element(&self, by: By) -> impl Future<Output = Result<Element<D>>>;
+    fn send_command<T>(&self, command: serde_json::Value) -> impl Future<Output = Result<T>>
     where
         T: DeserializeOwned;
+}
+pub trait TabWrite<D: DriverRead+ DriverWrite>{
     fn connect(&mut self) -> impl Future<Output = Result<()>>;
-    fn disconnect(&mut self) -> impl Future<Output = Result<()>>;
-    fn navigate(&mut self, url: &str) -> impl Future<Output = Result<serde_json::Value>>;
-    fn kill(&mut self) -> impl Future<Output = Result<serde_json::Value>>;
+    fn disconnect(&self) -> impl Future<Output = Result<()>>;
+    fn navigate(&self, url: &str) -> impl Future<Output = Result<serde_json::Value>>;
+    fn kill(&self) -> impl Future<Output = Result<serde_json::Value>>;
 }
 
 pub trait ElementRead<D: DriverRead + DriverWrite>{
-    fn text(&mut self, tab: &mut Tab<D>) -> impl Future<Output = Result<serde_json::Value>>;
+    fn get_text(&self) -> impl Future<Output = Result<serde_json::Value>>;
+    fn send_command<T>(&self, command: serde_json::Value) -> impl Future<Output = Result<T>>
+       where
+           T: DeserializeOwned;
 }
 pub trait ElementWrite<D: DriverRead + DriverWrite>{
-    fn click(&self, tab: &mut Tab<D>) -> impl Future<Output = Result<serde_json::Value>>;
-    fn focus(&self, tab: &mut Tab<D>) -> impl Future<Output = Result<serde_json::Value>>;
-    fn set_text(&self, text: &str, tab: &mut Tab<D>) -> impl Future<Output = Result<serde_json::Value>>;
+    fn click(&self) -> impl Future<Output = Result<serde_json::Value>>;
+    fn focus(&self) -> impl Future<Output = Result<serde_json::Value>>;
+    fn set_text(&self, text: &str) -> impl Future<Output = Result<serde_json::Value>>;
 }

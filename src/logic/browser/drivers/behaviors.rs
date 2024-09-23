@@ -17,7 +17,7 @@ pub trait DriverWrite {
     fn kill_tab(target_id: &str) -> serde_json::Value;
     fn new_tab() -> serde_json::Value;
     fn click_element(object_id: &str) -> serde_json::Value;
-    fn get_element_innertext(object_id: &str) -> serde_json::Value;
+    fn get_text(object_id: &str) -> serde_json::Value;
     fn runtime_evaluate(params: serde_json::Value) -> serde_json::Value;
     fn runtime_call_function_on(params: serde_json::Value) -> serde_json::Value;
     fn focus(object_id: &str) -> serde_json::Value;
