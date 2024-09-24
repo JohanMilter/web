@@ -10,9 +10,8 @@ use tools::{
     tab::{Tab, TabOptions},
 };
 
-use crate::utils::types::{error::Error, result::Result};
+use crate::{types::wsstream::WSStream, utils::types::{error::Error, result::Result}};
 
-use super::WSStream;
 
 pub mod behaviors;
 pub mod drivers;

@@ -22,13 +22,15 @@ mod tests {
     async fn test() {
         let (mut _browser, first_tab) = Browser::<Chrome>::open(9222, None).await.unwrap();
         _ = first_tab.navigate("https://www.example.com/").await;
-
+        
         let element = first_tab.get_element(By::XPath("/html/body/div/h1")).await.unwrap();
         let text = element.get_text().await.unwrap();
         println!("text = {}", text["result"]["result"]["value"]);
 
         let submit_element = first_tab.get_element(By::XPath("/html/body/div/p[2]/a")).await.unwrap();
         _ = submit_element.click().await;
+        std::thread::sleep(Duration::from_secs(5));
+        _ = first_tab.refresh().await;
 
         std::thread::sleep(Duration::from_secs(5));
     }
@@ -49,14 +51,22 @@ mod tests {
         std::thread::sleep(Duration::from_secs(5));
     }
 
-    #[test]
-    fn generate_dir_tree() {
-        let connector = chart::file_tree::Connectors::default();
-        chart::file_tree::create_dir_tree_file(
-            &connector,
-            &Some(chart::ignore!["target", ".git"]),
-            Path::new(r"P:\Languages\Rust\Libs\web"),
-            Path::new(r"P:\Languages\Rust\Libs\web\docs"),
-        )
+    #[tokio::test]
+    async fn navigate_back_forward() {
+        const WAIT: u64 = 2;
+        let (mut browser, first_tab) = Browser::<Chrome>::open(9222, None).await.unwrap();
+        _ = first_tab.navigate("https://www.example.com/").await;
+        std::thread::sleep(Duration::from_secs(WAIT));
+        _ = first_tab.navigate("https://www.wikipedia.org/").await;
+        _ = first_tab.back().await;
+        /*
+        for _ in 0..10 {
+            _ = first_tab.back().await;
+            std::thread::sleep(Duration::from_secs(WAIT));
+            _ = first_tab.forward().await;
+            std::thread::sleep(Duration::from_secs(WAIT));
+        }
+        */
+        std::thread::sleep(Duration::from_secs(5));
     }
 }

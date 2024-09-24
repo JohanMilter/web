@@ -4,3 +4,4 @@ pub mod result;
 pub mod tensor;
 pub mod url;
 pub mod by;
+pub mod wsstream;

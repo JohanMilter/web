@@ -1,3 +1,12 @@
+*** Done ***
+- **Refresh Page**: Reload the current page.
+- **Get Element**: Get the Element
+- **Navigate Back and Forward**: Control browser history navigation.
+- **Set text**: Can send text to the html inner text
+- **Get text**: Can get text from the html inner text
+- **Click element**: Clicks the element
+
+*** In progress ***
 # Wait Mechanisms and Synchronization
 - **Explicit Waits**: Wait for specific conditions (e.g., element to be visible, clickable, or present in the DOM).
 - **Implicit Waits**: Set a default wait time for all element searches.
@@ -40,8 +49,6 @@
 - **PDF Generation**: Export the current page as a PDF document.
 
 # Browser and Page Control
-- **Navigate Back and Forward**: Control browser history navigation.
-- **Refresh Page**: Reload the current page.
 - **Close Tabs and Windows**: Programmatically close browser tabs or windows.
 - **Set Viewport Size**: Adjust the browser window size or viewport dimensions.
 

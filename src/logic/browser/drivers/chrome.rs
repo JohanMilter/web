@@ -11,6 +11,11 @@ use crate::{
 use super::behaviors::{DriverRead, DriverWrite};
 
 static mut CURRENT_ID: AtomicUsize = AtomicUsize::new(0);
+fn new_id() -> usize{
+    let current_id;
+    unsafe { current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst); }
+    current_id
+}
 
 #[derive(Debug)]
 pub struct Chrome;
@@ -38,8 +43,7 @@ impl DriverRead for Chrome {
                     "document.evaluate(\"{}\", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue",
                     escape_js_string(xpath)
                 )
-            }
-            // Handle other variants as needed
+            } // Handle other variants as needed
         };
         Self::runtime_evaluate(serde_json::json!({
             "expression": expression,
@@ -52,9 +56,7 @@ impl DriverRead for Chrome {
 }
 impl DriverWrite for Chrome {
     fn open_process(address: std::net::Ipv4Addr, port: u16) -> tokio::process::Child {
-        unsafe {
-            CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
+        new_id();
         const PATH: &str = r"C:\Program Files\Google\Chrome\Application\chrome.exe";
         Command::new(PATH)
             .args([
@@ -69,19 +71,15 @@ impl DriverWrite for Chrome {
                 "--disable-translate",
                 "--disable-popup-blocking", // Allow popups for automation
                 "--auto-open-devtools-for-tabs",
-                "--enable-logging",         // Enable logging
+                "--enable-logging", // Enable logging
                 "--v=1",
             ])
             .spawn()
             .expect("Failed to start Chrome")
     }
     fn navigate(url: &str) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Page.navigate",
             "params": {
                 "url": url
@@ -89,12 +87,8 @@ impl DriverWrite for Chrome {
         })
     }
     fn kill_tab(target_id: &str) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Target.closeTarget",
             "params": {
                 "targetId": target_id
@@ -102,12 +96,8 @@ impl DriverWrite for Chrome {
         })
     }
     fn new_tab() -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Target.createTarget",
             "params": {
                 "url": "about:blank"
@@ -131,23 +121,15 @@ impl DriverWrite for Chrome {
         }))
     }
     fn runtime_evaluate(params: serde_json::Value) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Runtime.evaluate",
             "params": params,
         })
     }
     fn runtime_call_function_on(params: serde_json::Value) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Runtime.callFunctionOn",
             "params": params,
         })
@@ -161,12 +143,8 @@ impl DriverWrite for Chrome {
         }))
     }
     fn input_insert_text(params: serde_json::Value) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Input.insertText",
             "params": params,
         })
@@ -178,14 +156,43 @@ impl DriverWrite for Chrome {
     }
 
     fn input_dispatch_key_event(params: serde_json::Value) -> serde_json::Value {
-        let current_id;
-        unsafe {
-            current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
-        }
         serde_json::json!({
-            "id": current_id,
+            "id": new_id(),
             "method": "Input.dispatchKeyEvent",
             "params": params,
+        })
+    }
+    fn tab_refresh() -> serde_json::Value {
+        serde_json::json!({
+          "id": new_id(),
+          "method": "Page.reload",
+          "params": {
+            "ignoreCache": false
+          }
+        })
+    }
+    fn set_navigation_entry(entry_id: u32) -> serde_json::Value{
+        serde_json::json!({
+            "id": new_id(),
+            "method": "Page.navigateToHistoryEntry",
+            "params": {
+              "entryId": entry_id
+            }
+          })
+    }
+    fn get_navigation_history() -> serde_json::Value {
+        serde_json::json!({
+          "id": new_id(),
+          "method": "Page.getNavigationHistory"
+        })
+    }
+    fn tab_re_attach_to_target(target_id: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": new_id(),
+            "method": "Target.attachToTarget",
+            "params": {
+                "targetId": target_id
+            }
         })
     }
 }

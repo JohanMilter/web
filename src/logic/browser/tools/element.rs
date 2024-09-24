@@ -7,7 +7,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::{
     logic::browser::drivers::behaviors::{DriverRead, DriverWrite},
-    types::{error::Error, result::Result}, WSStream,
+    types::{error::Error, result::Result, wsstream::WSStream},
 };
 
 use super::{

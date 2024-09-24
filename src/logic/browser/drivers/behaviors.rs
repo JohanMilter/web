@@ -24,4 +24,8 @@ pub trait DriverWrite {
     fn input_insert_text(params: serde_json::Value) -> serde_json::Value;
     fn input_dispatch_key_event(params: serde_json::Value) -> serde_json::Value;
     fn set_text(text: &str) -> serde_json::Value;
+    fn tab_refresh() -> serde_json::Value;
+    fn set_navigation_entry(entry_id: u32) -> serde_json::Value;
+    fn get_navigation_history() -> serde_json::Value;
+    fn tab_re_attach_to_target(target_id: &str) -> serde_json::Value;
 }
