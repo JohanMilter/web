@@ -10,8 +10,10 @@ use tools::{
     tab::{Tab, TabOptions},
 };
 
-use crate::{types::wsstream::WSStream, utils::types::{error::Error, result::Result}};
-
+use crate::{
+    types::wsstream::WSStream,
+    utils::types::{error::Error, result::Result},
+};
 
 pub mod behaviors;
 pub mod drivers;
@@ -21,12 +23,14 @@ pub mod tools;
 pub struct BrowserOptions {
     pub(crate) close_on_out_of_scope: bool,
     pub(crate) connect_on_init: bool,
+    pub(crate) do_logging: bool,
 }
 impl Default for BrowserOptions {
     fn default() -> Self {
         Self {
             close_on_out_of_scope: true,
             connect_on_init: true,
+            do_logging: true,
         }
     }
 }
@@ -81,6 +85,12 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
         if this.options.connect_on_init {
             first_tab.connect().await?;
         }
+        
+        // Set the settings
+        first_tab.options.do_logging = this.options.do_logging;
+        first_tab.options.close_on_out_of_scope = this.options.close_on_out_of_scope;
+        first_tab.options.connect_on_init = this.options.connect_on_init;
+        
         Ok((this, first_tab))
     }
     async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
@@ -92,16 +102,45 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
             .0
             .send(Message::Text(command.to_string()))
             .await?;
+
+        let command_id = command
+            .get("id")
+            .and_then(|v| v.as_i64())
+            .ok_or_else(|| Error::InvalidCommand)?;
+
         while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
-            match msg {
-                Ok(Message::Text(text)) => match serde_json::from_str::<T>(&text) {
-                    Ok(response) => {
-                        return Ok(response);
-                    }
-                    Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
-                },
+            let text = match msg {
+                Ok(Message::Text(text)) => text,
                 Ok(_) => continue,
-                Err(_) => return Err(Error::BadStream),
+                Err(e) => {
+                    eprintln!("Error receiving message: {:?}", e);
+                    continue;
+                }
+            };
+            let value: serde_json::Value = match serde_json::from_str(&text) {
+                Ok(value) => value,
+                Err(e) => {
+                    eprintln!("Can't parse message as JSON: {:?}", e);
+                    continue;
+                }
+            };
+            match value.get("id").and_then(|v| v.as_i64()) {
+                Some(id) => {
+                    if id == command_id {
+                        if self.options.do_logging {
+                            println!("Received Response '{command_id}': \n{value}");
+                        }
+                        match serde_json::from_value::<T>(value) {
+                            Ok(response) => return Ok(response),
+                            Err(e) => eprintln!("Can't deserialize response: {:?}", e),
+                        }
+                    }
+                }
+                None => {
+                    if self.options.do_logging {
+                        println!("Received Async Event: \n{value}")
+                    }
+                }
             }
         }
         Err(Error::BadStream)

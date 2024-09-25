@@ -28,4 +28,5 @@ pub trait DriverWrite {
     fn set_navigation_entry(entry_id: u32) -> serde_json::Value;
     fn get_navigation_history() -> serde_json::Value;
     fn tab_re_attach_to_target(target_id: &str) -> serde_json::Value;
+    fn enable_page() -> serde_json::Value;
 }

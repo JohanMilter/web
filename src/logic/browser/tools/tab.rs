@@ -24,12 +24,14 @@ use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, Web
 pub struct TabOptions {
     pub(crate) close_on_out_of_scope: bool,
     pub(crate) connect_on_init: bool,
+    pub(crate) do_logging: bool,
 }
 impl Default for TabOptions {
     fn default() -> Self {
         Self {
-            close_on_out_of_scope: true,
+            do_logging: true,
             connect_on_init: true,
+            close_on_out_of_scope: true,
         }
     }
 }
@@ -80,44 +82,48 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
     where
         T: DeserializeOwned, {
         let mut stream = self.stream.as_ref().unwrap().write().await;
-        stream.0.send(Message::Text(command.to_string())).await?;
-        while let Some(msg) = stream.1.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    println!("Received msg: \n{text}");
-                    match serde_json::from_str::<T>(&text) {
-                        Ok(response) => return Ok(response),
-                        Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
-                    }
-                }
-                Ok(_) => continue,
-                Err(_) => eprintln!("Can't deserialize:\n{:?}\n", msg),
-            }
-        }
-        Err(Error::BadStream)
-    }
-    async fn send_command_with_session<T>(
-        &self,
-        session_id: &str,
-        mut command: serde_json::Value,
-    ) -> Result<T>
-    where
-        T: DeserializeOwned, {
-        command["sessionId"] = serde_json::Value::String(session_id.to_string());
 
-        let mut stream = self.stream.as_ref().unwrap().write().await;
+        // Extract the command's ID
+        let command_id = command
+            .get("id")
+            .and_then(|v| v.as_i64())
+            .ok_or_else(|| Error::InvalidCommand)?;
+
         stream.0.send(Message::Text(command.to_string())).await?;
+
         while let Some(msg) = stream.1.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    println!("Received msg: \n{text}");
-                    match serde_json::from_str::<T>(&text) {
-                        Ok(response) => return Ok(response),
-                        Err(_) => eprintln!("Can't deserialize:\n{text}\n"),
+            let text = match msg {
+                Ok(Message::Text(text)) => text,
+                Ok(_) => continue,
+                Err(e) => {
+                    eprintln!("Error receiving message: {:?}", e);
+                    continue;
+                }
+            };
+            let value: serde_json::Value = match serde_json::from_str(&text) {
+                Ok(value) => value,
+                Err(e) => {
+                    eprintln!("Can't parse message as JSON: {:?}", e);
+                    continue;
+                }
+            };
+            match value.get("id").and_then(|v| v.as_i64()) {
+                Some(id) => {
+                    if id == command_id {
+                        if self.options.do_logging {
+                            println!("Received Response '{command_id}': \n{value}\n");
+                        }
+                        match serde_json::from_value::<T>(value) {
+                            Ok(response) => return Ok(response),
+                            Err(e) => eprintln!("Can't deserialize response: {:?}", e),
+                        }
                     }
                 }
-                Ok(_) => continue,
-                Err(_) => eprintln!("Can't deserialize:\n{:?}\n", msg),
+                None => {
+                    if self.options.do_logging {
+                        println!("Received Async Event: \n{value}\n")
+                    }
+                }
             }
         }
         Err(Error::BadStream)
@@ -150,19 +156,33 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
     async fn refresh(&self) -> Result<serde_json::Value> {
         self.send_command(D::tab_refresh()).await
     }
-    async fn back(&self) -> Result<serde_json::Value> {
-        let resp = self.re_attach_to_target().await.unwrap();
-        let session_id = &resp["params"]["sessionId"];
-        let history = self.send_command(D::get_navigation_history()).await;
-        println!("back:resp = {:?}", history);
-        history
-    }
-    async fn forward(&self) -> Result<serde_json::Value> {
-        let history: serde_json::Value = self
+    async fn back(&self, count: usize) -> Result<serde_json::Value> {
+        assert!(count > 0, "Why the fuck would you use this function to go back 0 or less pages???");
+        _ = self.enable_page().await;
+        let resp: serde_json::Value = self
             .send_command(D::get_navigation_history())
             .await
             .unwrap();
-        println!("forward:history = {history}");
-        todo!()
+        let current_id = resp["result"]["currentIndex"].as_u64().unwrap();
+        let entries = resp["result"]["entries"].as_array().unwrap();
+        let new_entry = &entries[current_id as usize - count]["id"];
+        self.send_command(D::set_navigation_entry(new_entry.as_u64().unwrap() as u32))
+            .await
+    }
+    async fn forward(&self, count: usize) -> Result<serde_json::Value> {
+        assert!(count > 0, "Why the fuck would you use this function to go forward 0 or less pages???");
+        _ = self.enable_page().await;
+        let resp: serde_json::Value = self
+            .send_command(D::get_navigation_history())
+            .await
+            .unwrap();
+        let current_id = resp["result"]["currentIndex"].as_u64().unwrap();
+        let entries = resp["result"]["entries"].as_array().unwrap();
+        let new_entry = &entries[current_id as usize + count]["id"];
+        self.send_command(D::set_navigation_entry(new_entry.as_u64().unwrap() as u32))
+            .await
+    }
+    async fn enable_page(&self) -> Result<serde_json::Value> {
+        self.send_command(D::enable_page()).await
     }
 }

@@ -11,9 +11,11 @@ use crate::{
 use super::behaviors::{DriverRead, DriverWrite};
 
 static mut CURRENT_ID: AtomicUsize = AtomicUsize::new(0);
-fn new_id() -> usize{
+fn new_id() -> usize {
     let current_id;
-    unsafe { current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst); }
+    unsafe {
+        current_id = CURRENT_ID.fetch_add(1, Ordering::SeqCst);
+    }
     current_id
 }
 
@@ -56,7 +58,7 @@ impl DriverRead for Chrome {
 }
 impl DriverWrite for Chrome {
     fn open_process(address: std::net::Ipv4Addr, port: u16) -> tokio::process::Child {
-        new_id();
+        _ = new_id();
         const PATH: &str = r"C:\Program Files\Google\Chrome\Application\chrome.exe";
         Command::new(PATH)
             .args([
@@ -171,14 +173,14 @@ impl DriverWrite for Chrome {
           }
         })
     }
-    fn set_navigation_entry(entry_id: u32) -> serde_json::Value{
+    fn set_navigation_entry(entry_id: u32) -> serde_json::Value {
         serde_json::json!({
-            "id": new_id(),
-            "method": "Page.navigateToHistoryEntry",
-            "params": {
-              "entryId": entry_id
-            }
-          })
+          "id": new_id(),
+          "method": "Page.navigateToHistoryEntry",
+          "params": {
+            "entryId": entry_id
+          }
+        })
     }
     fn get_navigation_history() -> serde_json::Value {
         serde_json::json!({
@@ -193,6 +195,12 @@ impl DriverWrite for Chrome {
             "params": {
                 "targetId": target_id
             }
+        })
+    }
+    fn enable_page() -> serde_json::Value {
+        serde_json::json!({
+          "id": new_id(),
+          "method":"Page.enable"
         })
     }
 }
