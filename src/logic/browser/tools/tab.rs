@@ -14,6 +14,7 @@ use futures::{
     SinkExt, StreamExt,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use tokio::{
     net::TcpStream,
     sync::{RwLock, RwLockWriteGuard},
@@ -68,12 +69,18 @@ impl<D: DriverRead + DriverWrite> TabRead<D> for Tab<D> {
         let response = self.send_command::<serde_json::Value>(command).await?;
         let object_id = response["result"]["result"]["objectId"]
             .as_str()
-            .ok_or(Error::ElementNotFound)?
+            .ok_or(Error::Custom("Could not get element".into()))?
             .to_string();
+
+        let parent = match self.stream.as_ref() {
+            Some(parent) => parent.clone(),
+            None => return Err(Error::Custom("Could not get parent".into())),
+        };
+
         Ok(Element::<D> {
             state: PhantomData::<D>,
             object_id,
-            parent: Some(self.stream.as_ref().unwrap().clone()),
+            parent: Some(parent),
         })
     }
 }
@@ -81,13 +88,16 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
     async fn send_command<T>(&self, command: serde_json::Value) -> Result<T>
     where
         T: DeserializeOwned, {
-        let mut stream = self.stream.as_ref().unwrap().write().await;
+        let mut stream = match self.stream.as_ref() {
+            Some(stream) => stream.write().await,
+            None => return Err(Error::Custom("Could not send command".into())),
+        };
 
         // Extract the command's ID
         let command_id = command
             .get("id")
             .and_then(|v| v.as_i64())
-            .ok_or_else(|| Error::InvalidCommand)?;
+            .ok_or_else(|| Error::Custom("Could not get the id from the command".into()))?;
 
         stream.0.send(Message::Text(command.to_string())).await?;
 
@@ -100,6 +110,7 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
                     continue;
                 }
             };
+
             let value: serde_json::Value = match serde_json::from_str(&text) {
                 Ok(value) => value,
                 Err(e) => {
@@ -107,6 +118,7 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
                     continue;
                 }
             };
+
             match value.get("id").and_then(|v| v.as_i64()) {
                 Some(id) => {
                     if id == command_id {
@@ -126,7 +138,7 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
                 }
             }
         }
-        Err(Error::BadStream)
+        Err(Error::Custom("Could not send command".into()))
     }
     async fn re_attach_to_target(&self) -> Result<serde_json::Value> {
         self.send_command(D::tab_re_attach_to_target(&self.id))
@@ -142,8 +154,13 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
         Ok(())
     }
     async fn disconnect(&self) -> Result<()> {
-        let mut stream = self.stream.as_ref().unwrap().write().await;
+        let mut stream = match self.stream.as_ref() {
+            Some(stream) => stream.write().await,
+            None => return Err(Error::Custom("Could not disconnect".into())),
+        };
+
         stream.0.close().await?;
+
         Ok(())
     }
 
@@ -157,30 +174,55 @@ impl<D: DriverRead + DriverWrite> TabWrite<D> for Tab<D> {
         self.send_command(D::tab_refresh()).await
     }
     async fn back(&self, count: usize) -> Result<serde_json::Value> {
-        assert!(count > 0, "Why the fuck would you use this function to go back 0 or less pages???");
+        assert!(
+            count > 0,
+            "Why the fuck would you use this function to go back 0 or less pages???"
+        );
         _ = self.enable_page().await;
-        let resp: serde_json::Value = self
-            .send_command(D::get_navigation_history())
-            .await
-            .unwrap();
-        let current_id = resp["result"]["currentIndex"].as_u64().unwrap();
-        let entries = resp["result"]["entries"].as_array().unwrap();
-        let new_entry = &entries[current_id as usize - count]["id"];
-        self.send_command(D::set_navigation_entry(new_entry.as_u64().unwrap() as u32))
-            .await
+
+        let resp: serde_json::Value = self.send_command(D::get_navigation_history()).await?;
+
+        let current_id = match resp["result"]["currentIndex"].as_u64() {
+            Some(id) => id as usize,
+            None => return Err(Error::Custom("Could not get current id".into())),
+        };
+
+        let entries = match resp["result"]["entries"].as_array() {
+            Some(entries) => entries,
+            None => return Err(Error::Custom("Could not get entries".into())),
+        };
+
+        let new_entry = match entries[current_id - count]["id"].as_u64() {
+            Some(entry) => entry as u32,
+            None => return Err(Error::Custom("Could not new entry".into())),
+        };
+
+        self.send_command(D::set_navigation_entry(new_entry)).await
     }
     async fn forward(&self, count: usize) -> Result<serde_json::Value> {
-        assert!(count > 0, "Why the fuck would you use this function to go forward 0 or less pages???");
+        assert!(
+            count > 0,
+            "Why the fuck would you use this function to go forward 0 or less pages???"
+        );
         _ = self.enable_page().await;
-        let resp: serde_json::Value = self
-            .send_command(D::get_navigation_history())
-            .await
-            .unwrap();
-        let current_id = resp["result"]["currentIndex"].as_u64().unwrap();
-        let entries = resp["result"]["entries"].as_array().unwrap();
-        let new_entry = &entries[current_id as usize + count]["id"];
-        self.send_command(D::set_navigation_entry(new_entry.as_u64().unwrap() as u32))
-            .await
+        let resp: serde_json::Value = self.send_command(D::get_navigation_history()).await?;
+
+        let current_id = match resp["result"]["currentIndex"].as_u64() {
+            Some(id) => id as usize,
+            None => return Err(Error::Custom("Could not get current id".into())),
+        };
+
+        let entries = match resp["result"]["entries"].as_array() {
+            Some(entries) => entries,
+            None => return Err(Error::Custom("Could not get entries".into())),
+        };
+
+        let new_entry = match entries[current_id + count]["id"].as_u64() {
+            Some(entry) => entry as u32,
+            None => return Err(Error::Custom("Could not new entry".into())),
+        };
+
+        self.send_command(D::set_navigation_entry(new_entry)).await
     }
     async fn enable_page(&self) -> Result<serde_json::Value> {
         self.send_command(D::enable_page()).await

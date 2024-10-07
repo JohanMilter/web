@@ -22,7 +22,7 @@ fn new_id() -> usize {
 #[derive(Debug)]
 pub struct Chrome;
 impl DriverRead for Chrome {
-    async fn get_tabs(connection: (std::net::Ipv4Addr, u16)) -> Result<Vec<Tab<Self>>>
+    async fn get_tabs(connection: &(std::net::Ipv4Addr, u16)) -> Result<Vec<Tab<Self>>>
     where
         Self: Sized + DriverWrite, {
         Ok(Client::new()

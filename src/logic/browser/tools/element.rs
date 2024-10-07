@@ -30,8 +30,13 @@ impl<D: DriverRead + DriverWrite> ElementRead<D> for Element<D> {
     async fn send_command<T>(&self, command: serde_json::Value) -> Result<T>
     where
         T: DeserializeOwned, {
-        let mut stream = self.parent.as_ref().unwrap().write().await;
+        let mut stream = match self.parent.as_ref() {
+            Some(stream) => stream.write().await,
+            None => return Err(Error::Custom("Could not send command".into())),
+        };
+
         stream.0.send(Message::Text(command.to_string())).await?;
+
         while let Some(msg) = stream.1.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
@@ -45,11 +50,10 @@ impl<D: DriverRead + DriverWrite> ElementRead<D> for Element<D> {
                 Err(_) => eprintln!("Can't deserialize:\n{:?}\n", msg),
             }
         }
-        Err(Error::BadStream)
+        Err(Error::Custom("Could not send command".into()))
     }
 }
 impl<D: DriverRead + DriverWrite> ElementWrite<D> for Element<D> {
-    
     async fn click(&self) -> Result<serde_json::Value> {
         self.send_command(D::click_element(&self.object_id)).await
     }
@@ -60,6 +64,4 @@ impl<D: DriverRead + DriverWrite> ElementWrite<D> for Element<D> {
         _ = self.focus().await;
         self.send_command(D::set_text(text)).await
     }
-    
-    
 }

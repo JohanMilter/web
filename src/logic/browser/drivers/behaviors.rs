@@ -8,7 +8,7 @@ use crate::{
 pub trait DriverRead
 where
     Self: Sized + DriverWrite, {
-    fn get_tabs(connection: (Ipv4Addr, u16)) -> impl Future<Output = Result<Vec<Tab<Self>>>>;
+    fn get_tabs(connection: &(Ipv4Addr, u16)) -> impl Future<Output = Result<Vec<Tab<Self>>>>;
     fn get_element(by: By) -> serde_json::Value;
 }
 pub trait DriverWrite {

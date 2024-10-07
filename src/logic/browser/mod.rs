@@ -1,3 +1,4 @@
+use core::panic;
 use std::net::Ipv4Addr;
 
 use behaviors::{BrowserRead, BrowserWrite};
@@ -53,7 +54,12 @@ pub struct Browser<D: DriverRead + DriverWrite> {
 impl<D: DriverRead + DriverWrite> Drop for Browser<D> {
     fn drop(&mut self) {
         if self.options.close_on_out_of_scope {
-            _ = self.process.as_mut().unwrap().start_kill();
+            match &mut self.process {
+                Some(process) => {
+                    _ = process.start_kill();
+                }
+                None => panic!("[Drop Error] >> Browser already killed"),
+            }
         }
     }
 }
@@ -61,7 +67,10 @@ impl<D: DriverRead + DriverWrite> BrowserRead<D> for Browser<D> {
     async fn get_tabs(&self) -> Result<Vec<Tab<D>>>
     where
         Self: Sized, {
-        D::get_tabs(self.connection.unwrap()).await
+        match self.connection {
+            Some(connection) => D::get_tabs(&connection).await,
+            None => Err(Error::Custom("Could not get tabs".into())),
+        }
     }
 }
 
@@ -73,42 +82,45 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
 
         let process = Some(D::open_process(LOCAL_ADDRESS, port));
         let url = format!("http://{LOCAL_ADDRESS}:{port}/json/version");
-        let resp = reqwest::get(&url).await.unwrap();
-        let mut this = resp.json::<Browser<D>>().await.unwrap();
+        let resp = reqwest::get(&url).await?;
+        let mut this = resp.json::<Browser<D>>().await?;
         this.connection = Some((LOCAL_ADDRESS, port));
         this.process = process;
         this.state = std::marker::PhantomData::<D>;
         this.options = options.unwrap_or_default();
         this.connect().await?;
 
-        let mut first_tab = this.get_tabs().await.unwrap().remove(0);
+        let mut tabs = this.get_tabs().await?;
+        let mut first_tab = tabs.remove(0);
+        drop(tabs);
+
         if this.options.connect_on_init {
             first_tab.connect().await?;
         }
-        
+
         // Set the settings
         first_tab.options.do_logging = this.options.do_logging;
         first_tab.options.close_on_out_of_scope = this.options.close_on_out_of_scope;
         first_tab.options.connect_on_init = this.options.connect_on_init;
-        
+
         Ok((this, first_tab))
     }
     async fn send_command<T>(&mut self, command: serde_json::Value) -> Result<T>
     where
         T: DeserializeOwned, {
-        self.stream
-            .as_mut()
-            .unwrap()
-            .0
-            .send(Message::Text(command.to_string()))
-            .await?;
+        let stream = match self.stream.as_mut() {
+            Some(stream) => stream,
+            None => return Err(Error::Custom("Could send command".into())),
+        };
 
-        let command_id = command
+        stream.0.send(Message::Text(command.to_string())).await?;
+
+        let match_command_id = command
             .get("id")
             .and_then(|v| v.as_i64())
-            .ok_or_else(|| Error::InvalidCommand)?;
+            .ok_or_else(|| Error::Custom("Could not get id from command".into()))?;
 
-        while let Some(msg) = self.stream.as_mut().unwrap().1.next().await {
+        while let Some(msg) = stream.1.next().await {
             let text = match msg {
                 Ok(Message::Text(text)) => text,
                 Ok(_) => continue,
@@ -126,9 +138,9 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
             };
             match value.get("id").and_then(|v| v.as_i64()) {
                 Some(id) => {
-                    if id == command_id {
+                    if id == match_command_id {
                         if self.options.do_logging {
-                            println!("Received Response '{command_id}': \n{value}");
+                            println!("Received Response '{match_command_id}': \n{value}");
                         }
                         match serde_json::from_value::<T>(value) {
                             Ok(response) => return Ok(response),
@@ -143,24 +155,25 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
                 }
             }
         }
-        Err(Error::BadStream)
+        Err(Error::Custom("Could not send the command".into()))
     }
     async fn new_tab(&mut self, options: Option<TabOptions>) -> Result<Tab<D>> {
-        let resp = self
-            .send_command::<serde_json::Value>(D::new_tab())
-            .await
-            .unwrap();
+        let resp = self.send_command::<serde_json::Value>(D::new_tab()).await?;
+
         let lookup_id = resp["result"]["targetId"]
             .as_str()
-            .ok_or(Error::ElementNotFound)?
+            .ok_or(Error::Custom("Could not get lookup id".into()))?
             .to_string();
-        let mut tab = self
+
+        let mut tab = match self
             .get_tabs()
-            .await
-            .unwrap()
+            .await?
             .into_iter()
-            .find(|tab| tab.id == lookup_id)
-            .unwrap();
+            .find(|tab| tab.id == lookup_id) {
+                Some(tab) => tab,
+                None => return Err(Error::Custom("Could not get tab".into()))
+            };
+
         tab.options = options.unwrap_or_default();
         if tab.options.connect_on_init {
             _ = tab.connect().await;
@@ -173,7 +186,10 @@ impl<D: DriverRead + DriverWrite> BrowserWrite<D> for Browser<D> {
         Ok(())
     }
     async fn disconnect(&mut self) -> Result<()> {
-        let stream = self.stream.as_mut().unwrap();
+        let stream = match self.stream.as_mut(){
+            Some(stream) => stream,
+            None => return Err(Error::Custom("Could not disconnect".into()))
+        };
         stream.0.close().await?;
         Ok(())
     }
